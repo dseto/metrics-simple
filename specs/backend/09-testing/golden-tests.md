@@ -1,16 +1,19 @@
-# Golden Tests (Transform + CSV)
+# Golden Tests (Transformation)
 
-Data: 2026-01-01
+Data: 2026-01-02
 
-Casos mínimos:
-- quoting (vírgula/aspas/newline)
-- nulls
-- schema inválido
-- output inválido (validation fail)
-- determinismo (mesmo output => mesmo csv)
+A suíte canônica está em:
+- `specs/backend/05-transformation/unit-golden-tests.yaml`
+- `specs/backend/05-transformation/fixtures/*`
 
-## Suite canônica
-- YAML: `../05-transformation/unit-golden-tests.yaml`
-- Formato: `../05-transformation/golden-test-format.md`
-- Fixtures: `../05-transformation/fixtures/*`
+## Requisitos
+- Para cada caso:
+  1) executar DSL (jsonata)
+  2) **normalizar** output (object -> [object]) conforme `dsl-engine.md`
+  3) validar contra `expectedSchemaFile`
+  4) gerar CSV conforme `csv-format.md`
+  5) comparar `expectedOutputFile` (JSON semântico) e `expectedCsvFile` (byte-a-byte)
+
+## Comparação de JSON
+- Comparar de forma **semântica** (parse -> re-serialize com opções fixas), evitando falhas por whitespace.
 

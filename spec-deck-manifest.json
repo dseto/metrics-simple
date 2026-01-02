@@ -1,11 +1,11 @@
 {
   "name": "metrics-simple-spec-deck",
-  "version": "1.1.0",
-  "generatedAt": "2026-01-02",
+  "version": "1.1.3",
+  "generatedAt": "2026-01-02T14:56:25.542302+00:00",
   "files": [
     {
       "path": ".github/agents/spec-driven-builder.agent.md",
-      "sha256": "30d47dc364c90b16e7076d524e2fcb700b64b0e81c160faee44a8824cd920bba"
+      "sha256": "bbd55d7074e0684b571bde52b1cf4f703b5924a27d8ce6dbca4e00f7f2d5f0f1"
     },
     {
       "path": ".github/copilot-instructions.md",
@@ -21,7 +21,7 @@
     },
     {
       "path": "RELEASE_NOTES.md",
-      "sha256": "f4a1a96ac0c5492df76e735fcbbabbfb282e56738b0e849c4dd760149a6729a8"
+      "sha256": "ce4d4da5c582119dc0912ba354bd817f4b51982032454b7f2177d456b07b88f2"
     },
     {
       "path": "SCOPE.md",
@@ -33,7 +33,11 @@
     },
     {
       "path": "VERSION.md",
-      "sha256": "5109891e4ba4e56e7c6d7196a0d0e62a4f2e0ce60e0d477b789fed2be490a1ef"
+      "sha256": "646fecd35bb0e827420f0836dd3f2ce4de3f001a33943f5d70ae02b2cfb3787e"
+    },
+    {
+      "path": "docs/EVOLUTION.md",
+      "sha256": "d38892389c6f9e6baed26e79d1bb834e9bb4e9b85d1fb5a75177bcd84c486477"
     },
     {
       "path": "docs/TUTORIAL-END-TO-END.md",
@@ -97,15 +101,63 @@
     },
     {
       "path": "specs/backend/05-transformation/csv-format.md",
-      "sha256": "11e777ca791dbad30e5398c84c180ca7772585a4914746943b3aa2b5a5ff1ffd"
+      "sha256": "39f6e9fe820f7ee3a6206344a288128220ba1c30ebea55fa5348353ab0c19e33"
     },
     {
       "path": "specs/backend/05-transformation/dsl-engine.md",
-      "sha256": "3522b6a42ddd0b9cee20d5dfa2196a77faca98c435eb25617754863a880df45b"
+      "sha256": "378e58a13daf7efefc6427736ca176d6cb89ee7d63a98662865a55d2de9833da"
+    },
+    {
+      "path": "specs/backend/05-transformation/fixtures/hosts-cpu-dsl.jsonata",
+      "sha256": "e824d5677728b170f2f1533673270c0d45f50527355373fa2ff1cb3119d02e9b"
+    },
+    {
+      "path": "specs/backend/05-transformation/fixtures/hosts-cpu-expected-output.json",
+      "sha256": "fd3e84b27386de349df4cbe3c3cc48d1590c23e155b2df20493e4258cdf57ab2"
+    },
+    {
+      "path": "specs/backend/05-transformation/fixtures/hosts-cpu-expected.csv",
+      "sha256": "4ac343996f90ad4982d9f4fc05657eb2e187d4b20c15a40bed161941612fcda8"
+    },
+    {
+      "path": "specs/backend/05-transformation/fixtures/hosts-cpu-input.json",
+      "sha256": "4f5f35bbe461b54e1b0be163d061d4a9f00b59bc7269edbc9127a71d5f4afa01"
+    },
+    {
+      "path": "specs/backend/05-transformation/fixtures/hosts-cpu-output.schema.json",
+      "sha256": "56006082fdd347b456164d30eae3d6257aa5ed61e2d61cde24ba10043d0df2af"
+    },
+    {
+      "path": "specs/backend/05-transformation/fixtures/quoting-dsl.jsonata",
+      "sha256": "889e67e2f580858247aa40484c09d52904accfcaeec6263102dbbafdb7fee889"
+    },
+    {
+      "path": "specs/backend/05-transformation/fixtures/quoting-expected-output.json",
+      "sha256": "583f53891de85b356f0df8395ef020792f912e53c9cc53a3a19f3a1f7521148a"
+    },
+    {
+      "path": "specs/backend/05-transformation/fixtures/quoting-expected.csv",
+      "sha256": "440ada193f531ac9cf917102d17c73be0435c16332ab5e72d44e48fe10a0914c"
+    },
+    {
+      "path": "specs/backend/05-transformation/fixtures/quoting-input.json",
+      "sha256": "95a577ef9c5735c5d655ac1e48b6582d9e829cd1a0e3bdc5caeb14301f77e398"
+    },
+    {
+      "path": "specs/backend/05-transformation/fixtures/quoting-output.schema.json",
+      "sha256": "ad60d1098fccbdd824dcb26acfc1081837cd42c5835ea4f60cd7971f32d9253f"
+    },
+    {
+      "path": "specs/backend/05-transformation/golden-test-format.md",
+      "sha256": "4b125bbe82b3ce72c5d052b5dba41686ca5dd09be027d22432edf14ff94638d9"
     },
     {
       "path": "specs/backend/05-transformation/output-validation.md",
       "sha256": "5fdeedfd5cea964eb70bcc4289d9787bfe7d879355182b6c64c151a26c999489"
+    },
+    {
+      "path": "specs/backend/05-transformation/unit-golden-tests.yaml",
+      "sha256": "b58bb905c28430f400327e1752d5962db419456033c39fbb83af6af1e66aada4"
     },
     {
       "path": "specs/backend/06-storage/blob-and-local-storage.md",
@@ -173,11 +225,11 @@
     },
     {
       "path": "specs/backend/09-testing/backend-contract-tests.md",
-      "sha256": "99a58d19a4225a01efb9f7d27f743d2ee2030838decbfcb201b1832643918ead"
+      "sha256": "4b0fac5d6c617dd91bc5e1fe6a7e29cd9b43bfabb629107354e593696972bd9d"
     },
     {
       "path": "specs/backend/09-testing/golden-tests.md",
-      "sha256": "ed2df7f56fd786d318779789029d644f93c70a2f6b1bbd5049a09fd53d132811"
+      "sha256": "935ad70c7e3cc4ec01fa366802506f1dd7ca5d59b9ebc29d9eab237af3943de1"
     },
     {
       "path": "specs/backend/09-testing/repository-tests.md",
@@ -381,7 +433,11 @@
     },
     {
       "path": "specs/shared/README.md",
-      "sha256": "869a74c1215da56d5267902abc5c2ad5bd31bd516911a43e513da20bae929040"
+      "sha256": "819e3204330e651c108eec8473458a71b2069edc684fd64377efda212dbd5936"
+    },
+    {
+      "path": "specs/shared/domain/SCHEMA_GUIDE.md",
+      "sha256": "625cf6792c2a6e80077e329ddb0d64d9563e5fb5db948bba6e0039b343565ef4"
     },
     {
       "path": "specs/shared/domain/extensions/ai-confidence.md",
@@ -433,7 +489,7 @@
     },
     {
       "path": "specs/shared/domain/schemas/processVersion.schema.json",
-      "sha256": "cccd4725e820efbbb5c75547962c7ed84411f2e4d957593824db9d6eb25f3ba2"
+      "sha256": "96333e0f231932c20dc8073f2f51c3a4ec5a52fad5685b9c2cb13e3aab88aefc"
     },
     {
       "path": "specs/shared/domain/types/constants.md",
@@ -473,15 +529,19 @@
     },
     {
       "path": "specs/shared/spec-manifest.json",
-      "sha256": "f3a2e35f5a966df7ef58085f3335597e8cb1bf926b29a1854ea7cc22cbfdd3b3"
+      "sha256": "726cb8cdc6437f933b97a90b0312893eb5e78f7be8e5fe47c16d6216dbae2c6e"
     },
     {
       "path": "specs/spec-index.md",
       "sha256": "caf32a3471607913ea0083acba42a991e9d6781bb99c0ea55d8aad30ca861e4a"
     },
     {
-      "path": "testwrite.txt",
-      "sha256": "f2ca1bb6c7e907d06dafe4687e579fce76b37e4e93b7605022da52e6ccc26fd2"
+      "path": "tools/spec-validate.ps1",
+      "sha256": "f522172311ae016388cd79f0a0e9ea2c8cfbbe54edcab394051cee61f2862a2b"
+    },
+    {
+      "path": "tools/spec-validate.sh",
+      "sha256": "e25397bcdfa961f6df8efab040ac9ba1efe86142d33ccea829b01ac8981c9d3d"
     }
   ]
 }

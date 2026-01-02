@@ -97,7 +97,7 @@
     "outputSchema": {
       "type": "object",
       "minProperties": 1,
-      "description": "JSON Schema (draft 2020-12) as a JSON object."
+      "description": "JSON Schema (draft 2020-12) as a JSON object.  Must be self-contained (no external $ref by file/URL)."
     },
     "sampleInput": {
       "type": [

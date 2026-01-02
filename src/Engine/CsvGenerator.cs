@@ -5,41 +5,36 @@ namespace Metrics.Engine;
 
 public interface ICsvGenerator
 {
-    string GenerateCsv(JsonElement jsonArray);
+    string GenerateCsv(JsonElement rows, IReadOnlyList<string> columns);
 }
 
 public sealed class CsvGenerator : ICsvGenerator
 {
-    public string GenerateCsv(JsonElement jsonArray)
+    private const string NL = "\n";
+
+    public string GenerateCsv(JsonElement rows, IReadOnlyList<string> columns)
     {
-        if (jsonArray.ValueKind != JsonValueKind.Array)
+        if (rows.ValueKind != JsonValueKind.Array)
             throw new InvalidOperationException("Input must be a JSON array");
 
-        var items = jsonArray.EnumerateArray().ToList();
-        if (items.Count == 0)
-            return string.Empty;
+        var items = rows.EnumerateArray().ToList();
 
         var sb = new StringBuilder();
 
-        // Extract headers from the first object
-        var firstItem = items[0];
-        if (firstItem.ValueKind != JsonValueKind.Object)
-            throw new InvalidOperationException("Array items must be objects");
-
-        var headers = firstItem.EnumerateObject()
-            .Select(p => p.Name)
-            .ToList();
-
         // Write header row
-        sb.AppendLine(string.Join(",", headers.Select(EscapeCsvValue)));
+        sb.Append(string.Join(",", columns.Select(EscapeCsvValue)));
+        sb.Append(NL);
 
         // Write data rows
         foreach (var item in items)
         {
+            if (item.ValueKind != JsonValueKind.Object)
+                throw new InvalidOperationException("Array items must be objects");
+
             var values = new List<string>();
-            foreach (var header in headers)
+            foreach (var column in columns)
             {
-                if (item.TryGetProperty(header, out var value))
+                if (item.TryGetProperty(column, out var value))
                 {
                     values.Add(EscapeCsvValue(FormatCsvValue(value)));
                 }
@@ -48,7 +43,8 @@ public sealed class CsvGenerator : ICsvGenerator
                     values.Add(string.Empty);
                 }
             }
-            sb.AppendLine(string.Join(",", values));
+            sb.Append(string.Join(",", values));
+            sb.Append(NL);
         }
 
         return sb.ToString();
@@ -67,12 +63,17 @@ public sealed class CsvGenerator : ICsvGenerator
         };
     }
 
+    /// <summary>
+    /// RFC4180: quote field if contains comma, quote, newline, or carriage return.
+    /// Escape quotes by doubling: " -> ""
+    /// </summary>
     private string EscapeCsvValue(string value)
     {
         if (string.IsNullOrEmpty(value))
             return value;
 
-        if (value.Contains(",") || value.Contains("\"") || value.Contains("\n"))
+        // Check for characters that require quoting: comma, quote, newline, carriage return
+        if (value.Contains(",") || value.Contains("\"") || value.Contains("\n") || value.Contains("\r"))
         {
             return $"\"{value.Replace("\"", "\"\"")}\"";
         }

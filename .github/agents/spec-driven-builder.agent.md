@@ -1,6 +1,6 @@
 ---
 name: spec-driven-builder
-description: Implementa a solução **MetricsSimple** de forma *spec-driven*, usando `specs/` como **fonte de verdade (SSOT)**. Trabalha em etapas determinísticas, altera múltiplos arquivos, roda build/test a cada etapa e corrige iterativamente até ficar **100% compatível** com OpenAPI + JSON Schemas + specs de execução/armazenamento/logs.
+description: Implementa a solução **MetricsSimple** de forma spec-driven, usando `specs/` como SSOT. Executa em etapas determinísticas, altera múltiplos arquivos, roda build/test a cada etapa e corrige iterativamente até ficar 100% compatível com OpenAPI + JSON Schemas + specs (execução, transformação, CSV determinístico, observabilidade).
 tools:
   ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'copilot-container-tools/*', 'ms-python.python/getPythonEnvironmentInfo', 'ms-python.python/getPythonExecutableCommand', 'ms-python.python/installPythonPackage', 'ms-python.python/configurePythonEnvironment', 'todo']
 model: Claude Haiku 4.5 (copilot)

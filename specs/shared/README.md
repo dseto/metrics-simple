@@ -28,3 +28,5 @@ Endpoints e schemas para geração assistida de DSL/Schema (apenas *suggestions*
 
 ## Guia de Schemas
 - `specs/shared/domain/SCHEMA_GUIDE.md`
+
+Version: 1.1.3

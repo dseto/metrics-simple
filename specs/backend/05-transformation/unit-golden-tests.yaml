@@ -7,8 +7,9 @@
 # - inputFile/expected* são relativos ao diretório deste arquivo (./fixtures)
 # - A Engine deve:
 #   1) aplicar DSL (jsonata) sobre o JSON de input
-#   2) validar o output contra o expectedSchemaFile (JSON Schema 2020-12)
-#   3) gerar CSV determinístico conforme specs (csv-format.md)
+#   2) **normalizar** (object -> [object]) antes de validar
+#   3) validar o output contra o expectedSchemaFile (JSON Schema 2020-12)
+#   4) gerar CSV determinístico conforme specs (csv-format.md)
 
 version: 1
 tests:
