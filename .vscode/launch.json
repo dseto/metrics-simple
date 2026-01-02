@@ -1,0 +1,44 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "API (.NET 8 Kestrel)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "api-build",
+      "program": "${workspaceFolder}/src/Api/bin/Debug/net10.0/Metrics.Api.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/Api",
+      "stopAtEntry": false,
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5000"
+      },
+      "console": "internalConsole",
+      "internalConsoleOptions": "openOnSessionStart"
+    },
+    {
+      "name": "Runner (CLI)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "runner-build",
+      "program": "${workspaceFolder}/src/Runner/bin/Debug/net10.0/Metrics.Runner.dll",
+      "args": [
+        "execute",
+        "--processId",
+        "sample-process",
+        "--version",
+        "1.0.0"
+      ],
+      "cwd": "${workspaceFolder}",
+      "stopAtEntry": false,
+      "console": "integratedTerminal"
+    },
+    {
+      "name": ".NET Attach",
+      "type": "coreclr",
+      "request": "attach",
+      "processId": "${command:pickProcess}"
+    }
+  ]
+}
