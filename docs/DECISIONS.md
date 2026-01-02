@@ -26,6 +26,13 @@ Mudança de configuração de AI de arquivo separado (`config/ai.json`) para `ap
 | `src/Api/AI/AiModels.cs` | +Propriedade `ApiKey` (nullable) para suportar configuração |
 | `src/Api/Program.cs` | Rewrite de AI config loading (appsettings → env var overrides) |
 
+### Segurança: armazenamento de chaves de API
+
+**Decisão (2026-01-02):** Não armazenar chaves de API em arquivos versionados. A `AI.ApiKey` foi removida de `appsettings.json` e `appsettings.Development.json`; a aplicação passa a receber a chave apenas via variáveis de ambiente (`METRICS_OPENROUTER_API_KEY` ou `OPENROUTER_API_KEY`). Além disso, `.env` foi adicionado ao `.gitignore` e o arquivo `.env` do repositório foi limpo para conter apenas exemplos comentados.
+
+**Validação:** Confirmar que os arquivos `src/Api/appsettings.json` e `src/Api/appsettings.Development.json` não contêm mais `ApiKey`, que `.gitignore` contém `.env`, e que `Program.cs` prioriza as variáveis de ambiente para a chave.
+
+
 ### Arquitetura de Configuração
 
 ```csharp

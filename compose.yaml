@@ -1,0 +1,65 @@
+services:
+  csharp-api:
+    build:
+      context: ./src/Api
+      dockerfile: Dockerfile
+    container_name: csharp-api
+    restart: unless-stopped
+    init: true
+    ports:
+      - "8080:8080"
+    networks:
+      - backend
+    env_file:
+      - .env
+    environment:
+      - METRICS_SQLITE_PATH=/app/config/config.db
+      - DOTNET_ENVIRONMENT=Production
+      - ASPNETCORE_ENVIRONMENT=Production
+    volumes:
+      - ./src/Api/config:/app/config
+      - ./src/Api/logs:/app/logs
+    depends_on:
+      sqlite:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  csharp-runner:
+    build:
+      context: ./src/Runner
+      dockerfile: Dockerfile
+    container_name: csharp-runner
+    restart: on-failure
+    init: true
+    networks:
+      - backend
+    env_file:
+      - .env
+    environment:
+      - METRICS_SQLITE_PATH=/app/config/config.db
+      - DOTNET_ENVIRONMENT=Production
+    volumes:
+      - ./src/Api/config:/app/config
+      - ./src/Api/logs:/app/logs
+    depends_on:
+      csharp-api:
+        condition: service_healthy
+
+  sqlite:
+    image: nouchka/sqlite3:latest
+    container_name: sqlite
+    restart: unless-stopped
+    networks:
+      - backend
+    volumes:
+      - ./src/Api/config:/data
+    command: ["sqlite3", "/data/config.db"]
+
+networks:
+  backend:
+    driver: bridge

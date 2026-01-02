@@ -1,0 +1,83 @@
+# --- Version control ---
+.git/
+.gitignore
+.hg/
+.svn/
+
+# --- IDE/editor/project files ---
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# --- Build outputs (C#/.NET) ---
+**/bin/
+**/obj/
+
+# --- Common build outputs ---
+dist/
+build/
+out/
+tmp/
+temp/
+*.tmp
+
+# --- Test and local development directories ---
+test/
+tests/
+.local/
+local/
+
+# --- Logs and debug files ---
+*.log
+debug/
+logs/
+
+# --- Environment and secrets ---
+.env*
+*.env
+*.pem
+*.key
+*.crt
+config/secrets.local.json
+src/Api/appsettings.Development.json
+
+# --- Documentation and markdown ---
+docs/
+*.md
+README*
+
+# --- Docker and Compose files ---
+Dockerfile*
+docker-compose*
+
+# --- Node.js (not detected, but for safety) ---
+node_modules/
+npm-debug.log
+yarn-debug.log
+
+# --- Python (not detected, but for safety) ---
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+
+# --- Go (not detected, but for safety) ---
+/vendor/
+*.test
+.go-cache/
+
+# --- Java (not detected, but for safety) ---
+target/
+*.class
+.gradle/
+
+# --- Miscellaneous ---
+output/
+
+# --- OS/Editor temp files ---
+*~
+*.bak
+.DS_Store
+Thumbs.db

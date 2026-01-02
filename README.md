@@ -1,34 +1,42 @@
-# Metrics Simple — Spec Deck (v1.2.0)
+## Como rodar com Docker
 
-Este repositório contém um **spec deck** completo para implementar a solução **Metrics Simple** usando metodologia **Spec Driven Design**.
+Este projeto inclui suporte completo para execução via Docker e Docker Compose, utilizando imagens .NET 8.0.x e SQLite.
 
-## Estrutura
-- `specs/shared/` — contratos canônicos (OpenAPI + JSON Schemas + exemplos)
-- `specs/backend/` — comportamento e requisitos do backend/runner/engine
-- `specs/frontend/` — UI (Angular + Material 3): rotas, estados, componentes e validações
+### Requisitos específicos
+- **.NET SDK/ASP.NET:** Versão 8.0.11 (conforme `Api.csproj` e Dockerfiles)
+- **SQLite:** Persistência local via container `nouchka/sqlite3:latest`, com o arquivo de banco em `src/Api/config/config.db`
 
-## Regras de escopo (v1.x)
-- Execução **síncrona** (sem filas e sem Azure Functions).
-- Persistência local em **SQLite**.
-- Exportação de CSV para **Local File System** e/ou **Azure Blob Storage** (opcional).
-- IA (LLM) **apenas design-time** (sugestão de DSL/Schema), com validação no backend.
+### Serviços e portas
+- **csharp-api** (ASP.NET Core):
+  - Porta exposta: `8080` (mapeada para o host)
+  - Depende do serviço `sqlite`
+- **csharp-runner** (CLI):
+  - Não expõe portas
+  - Depende do serviço `sqlite`
+- **sqlite** (SQLite DB):
+  - Persistência: volume local `./src/Api/config:/data`
+  - Banco: `/data/config.db`
 
-## Qualidade mínima (obrigatório)
-- Contract tests + golden tests **e** **integration tests** devem rodar em CI/local:
-  - Contract: OpenAPI + schemas + DTOs
-  - Golden: transformação (Jsonata real) + schema + CSV (RFC4180)
-  - Integration (E2E): WebApplicationFactory + mock HTTP para **FetchSource** + persistência SQLite + execução do runner
+### Variáveis de ambiente
+- Os containers já definem variáveis essenciais:
+  - `ASPNETCORE_URLS=http://+:8080`
+  - `DOTNET_RUNNING_IN_CONTAINER=true`
+- Para configurações adicionais, utilize arquivos `.env` em `./src/Api` ou `./src/Runner` (opcional, descomentando no `docker-compose.yml`)
 
-> A spec **exige** que exista ao menos 1 suíte de **integration tests** que valide o caminho real:
-> connector/process/version → fetch HTTP (mockado) → transform → validate → csv → persistência/outputs.
+### Instruções de build e execução
+1. Certifique-se de que o Docker e o Docker Compose estão instalados.
+2. Execute na raiz do projeto:
+   ```sh
+   docker compose up --build
+   ```
+   Isso irá:
+   - Construir as imagens dos serviços `csharp-api` e `csharp-runner` usando os Dockerfiles específicos
+   - Inicializar o banco SQLite e mapear o volume para persistência
+   - Expor a API em `http://localhost:8080`
 
-## Fonte da verdade
-- OpenAPI: `specs/shared/openapi/config-api.yaml`
-- Schemas: `specs/shared/domain/schemas/*.schema.json`
+### Configuração especial
+- O banco SQLite é compartilhado entre API e runner via volume local (`src/Api/config/config.db`).
+- Para persistência, não remova o diretório `src/Api/config`.
+- Para customizar variáveis, crie um arquivo `.env` conforme necessidade e descomente a linha `env_file` no `docker-compose.yml`.
 
-## Como usar
-1. Comece por `SCOPE.md` e `TECH_STACK.md`.
-2. Navegue pelos decks via `specs/spec-index.md`.
-3. Implemente primeiro os contratos do deck `shared` (API + schemas).
-4. Em seguida: backend (engine + runner + storage + logs).
-5. Por fim: **tests obrigatórios**, incluindo integration tests (ver `specs/backend/09-testing/integration-tests.md`).
+> Consulte os contratos e exemplos em `specs/shared/` para integração e uso da API.

@@ -52,3 +52,6 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Local environment file (should never be committed)
+.env
