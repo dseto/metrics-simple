@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Metrics.Api.AI;
 using NJsonSchema;
 using Xunit;
 using YamlDotNet.Serialization;
@@ -223,5 +224,165 @@ public class ApiContractTests
         
         Assert.True(dslType.GetProperty("Profile") != null, "DslDto must have Profile property");
         Assert.True(dslType.GetProperty("Text") != null, "DslDto must have Text property");
+    }
+
+    // ============ AI Contract Tests ============
+
+    [Fact]
+    public async Task ValidateOpenApiSpec_IncludesAiEndpoint()
+    {
+        var openApiPath = Path.Combine(OpenApiDirectory, "config-api.yaml");
+        Assert.True(File.Exists(openApiPath), $"OpenAPI spec not found at {openApiPath}");
+
+        var yaml = await File.ReadAllTextAsync(openApiPath);
+        var deserializer = new DeserializerBuilder().Build();
+        
+        var spec = deserializer.Deserialize<dynamic>(yaml);
+        var paths = (IDictionary<object, object>)spec["paths"];
+        
+        // AI endpoint must exist
+        Assert.Contains("/api/ai/dsl/generate", paths.Keys.Cast<string>());
+    }
+
+    [Fact]
+    public async Task ValidateDslGenerateRequestSchema()
+    {
+        var schemaPath = Path.Combine(SchemaDirectory, "dslGenerateRequest.schema.json");
+        Assert.True(File.Exists(schemaPath), $"DslGenerateRequest schema not found at {schemaPath}");
+
+        var schema = await JsonSchema.FromFileAsync(schemaPath);
+        
+        Assert.NotNull(schema);
+        Assert.Equal(JsonObjectType.Object, schema.Type);
+        
+        // Verify required properties per spec
+        Assert.True(schema.Properties.ContainsKey("goalText"));
+        Assert.True(schema.Properties.ContainsKey("sampleInput"));
+        Assert.True(schema.Properties.ContainsKey("dslProfile"));
+        Assert.True(schema.Properties.ContainsKey("constraints"));
+        
+        // Verify goalText constraints
+        var goalText = schema.Properties["goalText"];
+        Assert.Equal(10, goalText.MinLength);
+        Assert.Equal(4000, goalText.MaxLength);
+        
+        // Verify constraints object
+        var constraints = schema.Properties["constraints"];
+        Assert.Equal(JsonObjectType.Object, constraints.Type);
+        Assert.True(constraints.Properties.ContainsKey("maxColumns"));
+        Assert.True(constraints.Properties.ContainsKey("allowTransforms"));
+        Assert.True(constraints.Properties.ContainsKey("forbidNetworkCalls"));
+        Assert.True(constraints.Properties.ContainsKey("forbidCodeExecution"));
+    }
+
+    [Fact]
+    public async Task ValidateDslGenerateResultSchema()
+    {
+        var schemaPath = Path.Combine(SchemaDirectory, "dslGenerateResult.schema.json");
+        Assert.True(File.Exists(schemaPath), $"DslGenerateResult schema not found at {schemaPath}");
+
+        var schema = await JsonSchema.FromFileAsync(schemaPath);
+        
+        Assert.NotNull(schema);
+        Assert.Equal(JsonObjectType.Object, schema.Type);
+        
+        // Verify required properties per spec
+        Assert.True(schema.Properties.ContainsKey("dsl"));
+        Assert.True(schema.Properties.ContainsKey("outputSchema"));
+        Assert.True(schema.Properties.ContainsKey("rationale"));
+        Assert.True(schema.Properties.ContainsKey("warnings"));
+        
+        // Verify dsl object
+        var dsl = schema.Properties["dsl"];
+        Assert.Equal(JsonObjectType.Object, dsl.Type);
+        Assert.True(dsl.Properties.ContainsKey("profile"));
+        Assert.True(dsl.Properties.ContainsKey("text"));
+        
+        // Verify optional properties exist
+        Assert.True(schema.Properties.ContainsKey("exampleRows"));
+        Assert.True(schema.Properties.ContainsKey("modelInfo"));
+    }
+
+    [Fact]
+    public async Task ValidateAiErrorSchema()
+    {
+        var schemaPath = Path.Combine(SchemaDirectory, "aiError.schema.json");
+        Assert.True(File.Exists(schemaPath), $"AiError schema not found at {schemaPath}");
+
+        var schema = await JsonSchema.FromFileAsync(schemaPath);
+        
+        Assert.NotNull(schema);
+        Assert.Equal(JsonObjectType.Object, schema.Type);
+        
+        // Verify required properties per spec
+        Assert.True(schema.Properties.ContainsKey("code"));
+        Assert.True(schema.Properties.ContainsKey("message"));
+        Assert.True(schema.Properties.ContainsKey("correlationId"));
+        
+        // Verify code enum values
+        var codeProp = schema.Properties["code"];
+        Assert.NotNull(codeProp.Enumeration);
+        Assert.Contains("AI_DISABLED", codeProp.Enumeration.Cast<string>());
+        Assert.Contains("AI_PROVIDER_UNAVAILABLE", codeProp.Enumeration.Cast<string>());
+        Assert.Contains("AI_TIMEOUT", codeProp.Enumeration.Cast<string>());
+        Assert.Contains("AI_OUTPUT_INVALID", codeProp.Enumeration.Cast<string>());
+        Assert.Contains("AI_RATE_LIMITED", codeProp.Enumeration.Cast<string>());
+        
+        // Verify optional properties
+        Assert.True(schema.Properties.ContainsKey("details"));
+        Assert.True(schema.Properties.ContainsKey("executionId"));
+    }
+
+    [Fact]
+    public void TestDslGenerateRequestDtoStructure()
+    {
+        // Verify that DslGenerateRequest DTO matches schema
+        var requestType = typeof(DslGenerateRequest);
+        
+        Assert.True(requestType.GetProperty("GoalText") != null);
+        Assert.True(requestType.GetProperty("SampleInput") != null);
+        Assert.True(requestType.GetProperty("DslProfile") != null);
+        Assert.True(requestType.GetProperty("Constraints") != null);
+        Assert.True(requestType.GetProperty("Hints") != null);
+        Assert.True(requestType.GetProperty("ExistingDsl") != null);
+        Assert.True(requestType.GetProperty("ExistingOutputSchema") != null);
+    }
+
+    [Fact]
+    public void TestDslGenerateResultDtoStructure()
+    {
+        // Verify that DslGenerateResult DTO matches schema
+        var resultType = typeof(DslGenerateResult);
+        
+        Assert.True(resultType.GetProperty("Dsl") != null);
+        Assert.True(resultType.GetProperty("OutputSchema") != null);
+        Assert.True(resultType.GetProperty("Rationale") != null);
+        Assert.True(resultType.GetProperty("Warnings") != null);
+        Assert.True(resultType.GetProperty("ExampleRows") != null);
+        Assert.True(resultType.GetProperty("ModelInfo") != null);
+    }
+
+    [Fact]
+    public void TestAiErrorDtoStructure()
+    {
+        // Verify that AiError DTO matches schema
+        var errorType = typeof(AiError);
+        
+        Assert.True(errorType.GetProperty("Code") != null);
+        Assert.True(errorType.GetProperty("Message") != null);
+        Assert.True(errorType.GetProperty("CorrelationId") != null);
+        Assert.True(errorType.GetProperty("Details") != null);
+        Assert.True(errorType.GetProperty("ExecutionId") != null);
+    }
+
+    [Fact]
+    public void TestAiErrorCodesMatchSchema()
+    {
+        // Verify that AiErrorCodes constants match the schema enum values
+        Assert.Equal("AI_DISABLED", AiErrorCodes.AiDisabled);
+        Assert.Equal("AI_PROVIDER_UNAVAILABLE", AiErrorCodes.AiProviderUnavailable);
+        Assert.Equal("AI_TIMEOUT", AiErrorCodes.AiTimeout);
+        Assert.Equal("AI_OUTPUT_INVALID", AiErrorCodes.AiOutputInvalid);
+        Assert.Equal("AI_RATE_LIMITED", AiErrorCodes.AiRateLimited);
     }
 }

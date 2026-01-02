@@ -1,5 +1,54 @@
 # Decisões Arquiteturais e de Implementação
 
+## Etapa 8: Configuração de AI em appsettings.json
+
+**Data:** 2026-01-02  
+**Status:** ✅ COMPLETADA
+
+### Contexto
+
+Mudança de configuração de AI de arquivo separado (`config/ai.json`) para `appsettings.json` e `appsettings.Development.json`, permitindo gerenciamento centralizado de configuração.
+
+### Decisão
+
+**Movida configuração de AI para appsettings:**
+- `appsettings.json` contém defaults e configuração de production
+- `appsettings.Development.json` contém overrides para development
+- `config/ai.json` pode ser removido (mantido se necessário para compatibilidade)
+- API Key continua com suporte a environment variables (`METRICS_OPENROUTER_API_KEY`, `OPENROUTER_API_KEY`)
+
+### Mudanças Implementadas
+
+| Arquivo | Mudança |
+|---------|---------|
+| `src/Api/appsettings.json` | +Seção `AI` com todas as configurações |
+| `src/Api/appsettings.Development.json` | +Seção `AI` com defaults para dev |
+| `src/Api/AI/AiModels.cs` | +Propriedade `ApiKey` (nullable) para suportar configuração |
+| `src/Api/Program.cs` | Rewrite de AI config loading (appsettings → env var overrides) |
+
+### Arquitetura de Configuração
+
+```csharp
+// Carregamento em cascata (precedência crescente)
+1. appsettings.json (defaults globais)
+2. appsettings.Development.json (overrides por ambiente)
+3. Environment variables: METRICS_OPENROUTER_API_KEY / OPENROUTER_API_KEY (máxima prioridade)
+```
+
+**Razão:** Align com padrões de configuração .NET (IConfiguration), facilitando:
+- Multi-environment (Dev/Staging/Prod)
+- Secrets management via environment variables
+- CI/CD integration
+
+### Validação
+
+**Testes:** ✅ 65/65 PASSED
+- API com configuração carregada de appsettings
+- Env vars override ApiKey corretamente
+- Todos os testes de AI funcionam sem `config/ai.json`
+
+---
+
 ## Etapa 5: Integration Tests E2E (Spec v1.2.0)
 
 **Data:** 2026-01-02  

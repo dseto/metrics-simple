@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Metrics.Api;
+using Metrics.Api.AI;
 using Metrics.Engine;
 using Serilog;
 
@@ -43,6 +44,55 @@ builder.Services.AddScoped<EngineService>();
 
 // Register Secrets
 builder.Services.AddScoped<ISecretsProvider>(_ => new SecretsProvider());
+
+// Load AI configuration from appsettings
+var aiConfig = builder.Configuration.GetSection("AI").Get<AiConfiguration>() ?? new AiConfiguration
+{
+    Enabled = false,
+    Provider = "HttpOpenAICompatible",
+    EndpointUrl = "https://openrouter.ai/api/v1/chat/completions",
+    Model = "openai/gpt-4o-mini",
+    PromptVersion = "1.0.0",
+    TimeoutSeconds = 30,
+    MaxRetries = 1,
+    Temperature = 0.0,
+    MaxTokens = 4096,
+    TopP = 0.9
+};
+
+// API Key from environment variable takes precedence over appsettings
+var apiKeyFromEnv = Environment.GetEnvironmentVariable("METRICS_OPENROUTER_API_KEY")
+    ?? Environment.GetEnvironmentVariable("OPENROUTER_API_KEY");
+if (!string.IsNullOrEmpty(apiKeyFromEnv))
+{
+    aiConfig.ApiKey = apiKeyFromEnv;
+}
+
+builder.Services.AddSingleton(aiConfig);
+
+// Register AI Provider based on configuration
+builder.Services.AddHttpClient<HttpOpenAiCompatibleProvider>();
+builder.Services.AddSingleton<IAiProvider>(sp =>
+{
+    if (!aiConfig.Enabled)
+    {
+        // Return a disabled provider that will throw on invocation
+        return new MockAiProvider(MockProviderConfig.WithError(
+            AiErrorCodes.AiDisabled,
+            "AI is disabled in configuration"));
+    }
+
+    if (aiConfig.Provider == "MockProvider")
+    {
+        return new MockAiProvider();
+    }
+
+    // Default to HttpOpenAICompatible
+    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var httpClient = httpClientFactory.CreateClient(nameof(HttpOpenAiCompatibleProvider));
+    var logger = sp.GetRequiredService<ILogger<HttpOpenAiCompatibleProvider>>();
+    return new HttpOpenAiCompatibleProvider(httpClient, aiConfig, logger);
+});
 
 var app = builder.Build();
 
@@ -110,6 +160,11 @@ connectorGroup.MapPost("/", CreateConnector)
 app.MapPost("/api/preview/transform", PreviewTransform)
     .WithName("PreviewTransform")
     .WithTags("Preview");
+
+// AI DSL Generate endpoint
+app.MapPost("/api/ai/dsl/generate", GenerateDsl)
+    .WithName("GenerateDsl")
+    .WithTags("AI");
 
 app.Run();
 
@@ -200,5 +255,205 @@ async Task<IResult> PreviewTransform(PreviewTransformRequestDto request, EngineS
     catch (Exception ex)
     {
         return Results.BadRequest(new PreviewTransformResponseDto(false, new List<string> { ex.Message }));
+    }
+}
+
+async Task<IResult> GenerateDsl(
+    DslGenerateRequest request,
+    IAiProvider aiProvider,
+    AiConfiguration aiConfig,
+    EngineService engine,
+    HttpContext httpContext,
+    ILogger<Program> logger)
+{
+    // Generate correlation ID
+    var correlationId = httpContext.Request.Headers["X-Correlation-Id"].FirstOrDefault()
+        ?? Guid.NewGuid().ToString("N")[..12];
+
+    try
+    {
+        // Check if AI is enabled
+        if (!aiConfig.Enabled)
+        {
+            return Results.Json(new AiError
+            {
+                Code = AiErrorCodes.AiDisabled,
+                Message = "AI functionality is disabled. Enable it in appsettings.json under AI.Enabled.",
+                CorrelationId = correlationId
+            }, statusCode: 503);
+        }
+
+        // Validate request against guardrails
+        var requestValidation = AiGuardrails.ValidateRequest(request);
+        if (!requestValidation.IsValid)
+        {
+            return Results.Json(new AiError
+            {
+                Code = AiErrorCodes.AiOutputInvalid,
+                Message = "Request validation failed",
+                Details = requestValidation.Errors,
+                CorrelationId = correlationId
+            }, statusCode: 400);
+        }
+
+        // Log request (without sensitive data)
+        var inputHash = AiGuardrails.ComputeInputHash(request.SampleInput);
+        logger.LogInformation(
+            "AI DSL Generate: CorrelationId={CorrelationId}, Profile={Profile}, GoalLength={GoalLength}, InputHash={InputHash}",
+            correlationId, request.DslProfile, request.GoalText.Length, inputHash);
+
+        // Call AI provider with optional repair attempt
+        var startTime = DateTime.UtcNow;
+        const int maxRepairAttempts = 1;
+        
+        DslGenerateResult? result = null;
+        List<string>? lastErrors = null;
+        string? lastDslAttempt = null;
+        
+        for (int attempt = 0; attempt <= maxRepairAttempts; attempt++)
+        {
+            var isRepairAttempt = attempt > 0;
+            
+            // Build request (with repair hints if this is a retry)
+            var currentRequest = request;
+            if (isRepairAttempt && lastErrors != null && lastDslAttempt != null)
+            {
+                logger.LogInformation(
+                    "AI DSL Repair Attempt: CorrelationId={CorrelationId}, Attempt={Attempt}",
+                    correlationId, attempt);
+                
+                // Create repair request with hints containing validation errors
+                var repairHints = new Dictionary<string, string>
+                {
+                    ["ValidationErrors"] = string.Join("; ", lastErrors),
+                    ["JsonataDialectRules"] = "Review: no $.path (root is implicit), no [!cond] (use [cond=false] or [not cond]), $sum(array) and $average(array) are valid, $match returns [0].groups[n]"
+                };
+                
+                currentRequest = request with
+                {
+                    ExistingDsl = lastDslAttempt,
+                    Hints = repairHints
+                };
+            }
+            
+            try
+            {
+                result = await aiProvider.GenerateDslAsync(currentRequest, httpContext.RequestAborted);
+            }
+            catch (AiProviderException ex)
+            {
+                logger.LogError(ex, "AI provider error: {ErrorCode} - {Message}", ex.ErrorCode, ex.Message);
+                return Results.Json(new AiError
+                {
+                    Code = ex.ErrorCode,
+                    Message = ex.Message,
+                    Details = ex.Details,
+                    CorrelationId = correlationId
+                }, statusCode: ex.ErrorCode == AiErrorCodes.AiOutputInvalid ? 502 : 503);
+            }
+
+            // Validate result structure
+            var resultValidation = await AiGuardrails.ValidateResultAsync(result);
+            if (!resultValidation.IsValid)
+            {
+                lastErrors = resultValidation.Errors.Select(e => $"{e.Path}: {e.Message}").ToList();
+                lastDslAttempt = result.Dsl.Text;
+                
+                if (attempt >= maxRepairAttempts)
+                {
+                    logger.LogWarning("AI output validation failed after repair: {Errors}", string.Join(", ", lastErrors));
+                    return Results.Json(new AiError
+                    {
+                        Code = AiErrorCodes.AiOutputInvalid,
+                        Message = "AI provider returned invalid output after repair attempt",
+                        Details = resultValidation.Errors,
+                        CorrelationId = correlationId
+                    }, statusCode: 502);
+                }
+                continue;
+            }
+
+            // Run preview/validation using the Engine
+            try
+            {
+                var previewResult = engine.TransformValidateToCsv(
+                    request.SampleInput,
+                    result.Dsl.Profile,
+                    result.Dsl.Text,
+                    result.OutputSchema);
+
+                if (!previewResult.IsValid)
+                {
+                    lastErrors = previewResult.Errors.ToList();
+                    lastDslAttempt = result.Dsl.Text;
+                    
+                    // Compute DSL hash for debugging
+                    var dslHash = AiGuardrails.ComputeDslHash(result.Dsl.Text);
+                    var dslPreview = result.Dsl.Text.Length > 200 
+                        ? result.Dsl.Text[..200] + "..." 
+                        : result.Dsl.Text;
+                    
+                    if (attempt >= maxRepairAttempts)
+                    {
+                        logger.LogWarning("AI-generated DSL preview failed after repair: DSL_INVALID: Failed to parse/compile Jsonata expression. dslHash={DslHash} dslPreview={DslPreview}",
+                            dslHash, dslPreview);
+                        return Results.Json(new AiError
+                        {
+                            Code = AiErrorCodes.AiOutputInvalid,
+                            Message = "AI-generated DSL failed preview validation after repair attempt",
+                            Details = lastErrors.Select(e => new AiErrorDetail
+                            {
+                                Path = "preview",
+                                Message = e
+                            }).ToList(),
+                            CorrelationId = correlationId
+                        }, statusCode: 502);
+                    }
+                    
+                    logger.LogInformation("DSL preview failed, attempting repair: {Errors}", string.Join(", ", lastErrors));
+                    continue;
+                }
+                
+                // Success! DSL validated successfully
+                break;
+            }
+            catch (Exception ex)
+            {
+                lastErrors = new List<string> { ex.Message };
+                lastDslAttempt = result.Dsl.Text;
+                
+                if (attempt >= maxRepairAttempts)
+                {
+                    logger.LogWarning(ex, "AI-generated DSL preview threw exception after repair");
+                    return Results.Json(new AiError
+                    {
+                        Code = AiErrorCodes.AiOutputInvalid,
+                        Message = $"AI-generated DSL failed preview after repair: {ex.Message}",
+                        CorrelationId = correlationId
+                    }, statusCode: 502);
+                }
+                
+                logger.LogInformation("DSL preview exception, attempting repair: {Error}", ex.Message);
+                continue;
+            }
+        }
+
+        var latency = (DateTime.UtcNow - startTime).TotalMilliseconds;
+        
+        logger.LogInformation(
+            "AI DSL Generate success: CorrelationId={CorrelationId}, Latency={Latency}ms, DslLength={DslLength}",
+            correlationId, latency, result!.Dsl.Text.Length);
+
+        return Results.Ok(result);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Unexpected error in AI DSL generate: {Message}", ex.Message);
+        return Results.Json(new AiError
+        {
+            Code = AiErrorCodes.AiProviderUnavailable,
+            Message = "An unexpected error occurred",
+            CorrelationId = correlationId
+        }, statusCode: 503);
     }
 }

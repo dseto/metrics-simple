@@ -23,13 +23,13 @@ Os DTOs canônicos estão em `specs/shared/domain/schemas/`.
 > Observação: se o provider devolver `outputSchema` como string JSON, o backend deve parsear e validar antes de devolver ao client.
 
 ## Configuração
-Arquivo `config/ai.json` (local):
-- `enabled: true|false`
-- `provider: "HttpOpenAICompatible" | "MockProvider"`
-- `endpointUrl` (se HTTP)
-- `model`
-- `promptVersion`
-- `timeoutSeconds`
+Configurações em `appsettings.json` (seção `AI`):
+- `Enabled: true|false`
+- `Provider: "HttpOpenAICompatible" | "MockProvider"`
+- `EndpointUrl` (se HTTP)
+- `Model`
+- `PromptVersion`
+- `TimeoutSeconds`
 
 ## Modo offline
 Quando `enabled=false`, endpoint retorna 503 `AI_DISABLED`.

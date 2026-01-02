@@ -11,7 +11,7 @@ Data: 2026-01-02
 - Error (503): `specs/shared/domain/schemas/aiError.schema.json`
 
 ### Comportamento (mínimo)
-1. Verificar se AI está habilitada (`config/ai.json`).
+1. Verificar se AI está habilitada (configuração `AI.Enabled` em `appsettings.json`).
 2. Validar request (tamanho e estrutura).
 3. Chamar provider de LLM via `IAiProvider.GenerateDslAsync(...)`.
 4. Validar resposta do provider:
