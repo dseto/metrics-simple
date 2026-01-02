@@ -36,3 +36,12 @@ Remove arquivos antigos conforme retenção.
 ## Seleção de version
 - Se `--version`: usar exatamente aquela versão (inteiro).
 - Senão: selecionar a **maior versão numérica** (`max(version)`) com `enabled=true`.
+
+## Configuração para execução e testes
+
+Para suportar execução determinística e **integration tests**, o Runner deve respeitar:
+
+- `METRICS_SQLITE_PATH`: caminho do arquivo SQLite.
+- `METRICS_SECRET__<authRef>`: segredo para resolver `connector.authRef`.
+
+Essas chaves são normativas para a suíte `Integration.Tests`.

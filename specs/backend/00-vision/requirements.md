@@ -17,3 +17,13 @@ Implementar o **Config API** e o **Runner CLI** para executar exportação de m�
 ## Não permitidos (v1.x)
 - Filas / orquestração assíncrona
 - Azure Functions / timers / triggers
+## Testes (obrigatório)
+- Contracts + Golden + **Integration (E2E)**.
+- Integration tests devem cobrir:
+  - API via WebApplicationFactory
+  - FetchSource via HTTP (mock server)
+  - Runner CLI executado como processo real
+  - SQLite real (arquivo temporário)
+
+Ver: `../09-testing/integration-tests.md`.
+

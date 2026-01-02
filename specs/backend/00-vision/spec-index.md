@@ -32,6 +32,7 @@
 - Traceability: `traceability.md`
 - Backend contract tests: `../09-testing/backend-contract-tests.md`
 - Golden tests: `../09-testing/golden-tests.md`
+- Integration tests (E2E): `../09-testing/integration-tests.md`
 - Repository tests: `../09-testing/repository-tests.md`
 
 ## AI Assist (design-time)

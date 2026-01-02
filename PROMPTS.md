@@ -76,7 +76,7 @@ Cole isto como primeira mensagem do chat:
 
 # BACKEND — prompts por etapa
 
-> Stack fixa backend: .NET 8, SQLite local, Serilog, NJsonSchema 11.0.2.
+> Stack fixa backend: .NET 10, SQLite local, Serilog, NJsonSchema 11.0.2.
 
 ## Prompt 10 — Gerar/confirmar esqueleto do backend (projeto)
 
@@ -85,7 +85,7 @@ Cole isto como primeira mensagem do chat:
 - `specs/shared/*`
 
 **Prompt:**
-> Gere (ou valide) o esqueleto do backend em .NET 8 com a estrutura:  
+> Gere (ou valide) o esqueleto do backend em .NET 10 com a estrutura:  
 > `src/Common`, `src/Engine`, `src/Api`, `src/Runner`, `config/`, `output/`, `.github/`.  
 > Regras: namespace raiz `MetricsSimple.*`; sem Python.  
 > Inclua `global.json`, `.editorconfig`, `Directory.Build.props` e tasks VS Code.  

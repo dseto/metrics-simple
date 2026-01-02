@@ -1,5 +1,4 @@
-
-# Technology Stack — MetricsSimple v1.1
+# Technology Stack — MetricsSimple v1.2
 
 Este documento define a **stack tecnológica obrigatória** do projeto.
 Qualquer desvio é considerado **fora de escopo**.
@@ -9,50 +8,32 @@ Qualquer desvio é considerado **fora de escopo**.
 ## Backend
 
 - Linguagem: **C#**
-- Runtime: **.NET 8.x**
+- Runtime: **.NET 10**
 - API: **ASP.NET Core Minimal API**
 - Runner: **Console Application (CLI)**
 - Execução: **SÍNCRONA**
 - Persistência: **SQLite local**
-- Validação: **NJsonSchema**
-- Logs: **Serilog (JSON estruturado)**
-- IA (design-time):
-  - Interface `IAiProvider`
-  - Apenas geração assistida de DSL
-  - Nunca usada em runtime
-
-🚫 Proibido:
-- Python
-- Node.js no backend
-- Azure Functions
-- Filas / Workers
-- Execução assíncrona
-- Application Insights / Azure Monitor
+- Transform DSL: **Jsonata** (via biblioteca externa estável)
+- JSON: **System.Text.Json**
+- Schema validation: **NJsonSchema**
+- Logs: **Serilog** (JSONL)
 
 ---
 
-## Frontend
+## Testes
 
-- UI: **Material Design 3**
-- Tipo: **SPA**
-- Integração: REST (OpenAPI shared)
-- Formulários: **100% guiados pelo ui-field-catalog**
+### Unit / Contract / Golden
+- Framework: **xUnit**
+- Golden tests: fixtures + comparação semântica de JSON + CSV byte-a-byte
+- Contract tests: parse OpenAPI + validação de schemas + alinhamento de DTOs
 
-🚫 Proibido:
-- Frameworks fora dos guidelines do Material 3
-- Campos fora do field catalog
+### Integration (obrigatório)
+- Host in-memory da API: **Microsoft.AspNetCore.Mvc.Testing** (WebApplicationFactory)
+- Mock HTTP para fontes externas (FetchSource):
+  - Preferido: **WireMock.Net** (in-process) — não requer Docker
+  - Opcional: **testcontainers-dotnet** para rodar WireMock/Azurite em container (quando Docker Desktop/CI suportar)
 
----
-
-## Infraestrutura (v1.x)
-
-- Execução local / VM / IIS
-- Armazenamento:
-  - Arquivo local
-  - Azure Blob Storage (opcional)
-- Observabilidade:
-  - Logs estruturados
-  - Sem APM
+> A spec exige que **integration tests rodem sem dependência de internet** e validem o caminho real de fetch HTTP (mockado) → transformação → validação → CSV.
 
 ---
 

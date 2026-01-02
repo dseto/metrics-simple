@@ -9,19 +9,22 @@
 3. **Mudança de contrato** exige update no deck `shared` e rastreabilidade.
 
 ## Stack fixa (não negociar)
-- .NET 8, C# (backend)
+- .NET 10, C# (backend)
 - SQLite (local)
 - Serilog (logs)
-- NJsonSchema 11.0.2 (schema validation)
+- NJsonSchema (schema validation)
 - Material Design 3 (frontend)
 
-## Qualidade mínima
+## Qualidade mínima (obrigatório)
 - Build deve passar (`dotnet build`)
+- Testes devem passar (`dotnet test`)
+  - Contract tests
+  - Golden tests
+  - **Integration tests (E2E) obrigatórios**: WebApplicationFactory + mock HTTP (FetchSource) + SQLite + runner
 - Sem warnings críticos; `nullable` habilitado
 - Erros devem seguir `ApiError` (shared)
 
 ## Fluxo de trabalho
 - Antes de codar: ler `specs/spec-index.md`
 - Implementar em pequenas mudanças com commits frequentes
-- Após cada etapa: rodar testes locais (quando existirem)
-
+- Após cada etapa: rodar build/test e corrigir iterativamente

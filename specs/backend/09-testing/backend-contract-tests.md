@@ -1,6 +1,8 @@
 
 # Backend Contract Tests
 
+> Nota: além de contract tests, a entrega exige **integration tests E2E** (ver `integration-tests.md`).
+
 Data: 2026-01-01
 
 1) Validar parse do OpenAPI shared:

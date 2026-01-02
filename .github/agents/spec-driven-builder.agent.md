@@ -195,7 +195,37 @@ Comandos padrão:
 
 ---
 
-## Etapa 5 — Contratos “lite” e regressão
+## Etapa 5 — Integration Tests (E2E) obrigatórios
+
+**Objetivo:** garantir que o backend funciona end-to-end com **HTTP real (mockado)**, **SQLite real** e **Runner CLI como processo**.
+
+### Entrada (specs)
+- `specs/backend/09-testing/integration-tests.md`
+- `specs/backend/04-execution/cli-contract.md`
+- `specs/backend/04-execution/runner-pipeline.md`
+- `specs/backend/06-storage/blob-and-local-storage.md`
+- `specs/backend/05-transformation/csv-format.md`
+- `specs/shared/openapi/config-api.yaml`
+
+### Regras determinísticas
+- Integration tests **não** podem usar internet/serviços reais.
+- FetchSource deve ocorrer via HTTP real contra mock server (ex.: WireMock.Net).
+- Runner deve ser executado como **processo real** (não “chamar método” em memória).
+- Os testes devem usar `METRICS_SQLITE_PATH` para isolar DB por execução.
+- Comparação de CSV: byte-a-byte (normalizando newline conforme spec).
+
+### Entregáveis
+- Projeto: `tests/Integration.Tests`
+- Casos mínimos: IT01, IT02, IT03 conforme `integration-tests.md`
+
+### Validação (obrigatória)
+- `dotnet test`
+
+**DoD:** integration tests passando + evidência de que FetchSource foi executado (mock server registrou request).
+
+---
+
+## Etapa 6 — Contratos “lite” e regressão
 **Objetivo:** travar drift e impedir que contratos quebrem no futuro.
 
 ### Entrada (specs)
@@ -218,7 +248,7 @@ Comandos padrão:
 
 ---
 
-## Etapa 6 — UI Studio (se aplicável no repo)
+## Etapa 7 — UI Studio (se aplicável no repo)
 **Objetivo:** entregar UI mínima implementando configuração + preview + geração assistida (LLM = sugestão).
 
 ### Entrada (specs)

@@ -20,8 +20,10 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// Get configuration
-var dbPath = builder.Configuration["Database:Path"] ?? "./config/config.db";
+// Get configuration - METRICS_SQLITE_PATH env var takes precedence (required for integration tests)
+var dbPath = Environment.GetEnvironmentVariable("METRICS_SQLITE_PATH") 
+    ?? builder.Configuration["Database:Path"] 
+    ?? "./config/config.db";
 var secretsPath = builder.Configuration["Secrets:Path"] ?? "./config/secrets.local.json";
 
 // Initialize database
@@ -52,7 +54,11 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = "swagger";
 });
 
-app.UseHttpsRedirection();
+// Use HTTPS redirection only in non-test environments
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    app.UseHttpsRedirection();
+}
 
 // Health check
 app.MapGet("/api/health", GetHealth)

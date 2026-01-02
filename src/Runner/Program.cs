@@ -23,6 +23,11 @@ run.AddOption(dbOpt);
 
 run.SetHandler(async (string processId, string version, string dest, string? outPath, string? secrets, string? db) =>
 {
+    // Resolve SQLite path: CLI --db > env METRICS_SQLITE_PATH > default
+    var effectiveDb = db 
+        ?? Environment.GetEnvironmentVariable("METRICS_SQLITE_PATH") 
+        ?? "./config/config.db";
+    
     var executionId = Guid.NewGuid().ToString("N");
     
     Log.Logger = new LoggerConfiguration()
@@ -52,7 +57,7 @@ run.SetHandler(async (string processId, string version, string dest, string? out
 
         var orchestrator = new PipelineOrchestrator(engine, secretsProvider, dbProvider);
 
-        // Create pipeline context
+        // Create pipeline context - use effectiveDb instead of db
         var context = new PipelineContext(
             executionId,
             processId,
@@ -60,7 +65,7 @@ run.SetHandler(async (string processId, string version, string dest, string? out
             dest,
             outPath,
             secrets,
-            db
+            effectiveDb
         );
 
         // Execute pipeline

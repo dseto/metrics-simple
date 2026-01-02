@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.0-preview.1.25120.3" />
+    <PackageReference Include="WireMock.Net" Version="1.6.9" />
+    <PackageReference Include="FluentAssertions" Version="6.12.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Api\Api.csproj" />
+    <ProjectReference Include="..\..\src\Runner\Runner.csproj" />
+    <ProjectReference Include="..\..\src\Engine\Engine.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\specs\backend\05-transformation\fixtures\*.json" Link="fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\backend\05-transformation\fixtures\*.jsonata" Link="fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\backend\05-transformation\fixtures\*.csv" Link="fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

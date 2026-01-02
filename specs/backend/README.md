@@ -1,4 +1,3 @@
-
 # Backend Specs
 
 Data: 2026-01-01
@@ -28,3 +27,6 @@ Este deck agora inclui specs explícitas para:
 - schema SQLite e contratos de repositório
 - observabilidade via logs JSONL
 - golden/contract/repository tests
+
+- integration tests E2E obrigatórios (WebApplicationFactory + mock HTTP + runner)
+

@@ -1,5 +1,180 @@
 # Decisões Arquiteturais e de Implementação
 
+## Etapa 5: Integration Tests E2E (Spec v1.2.0)
+
+**Data:** 2026-01-02  
+**Status:** ✅ COMPLETADA
+
+### Contexto
+
+Implementação de Integration Tests E2E obrigatórios conforme `specs/backend/09-testing/integration-tests.md` v1.2.0. Esta spec torna **obrigatório** que o backend possua testes que validem o fluxo end-to-end real do produto.
+
+### Specs Implementadas
+
+| Spec | Arquivo | Implementação |
+|------|---------|---------------|
+| integration-tests.md | `specs/backend/09-testing/integration-tests.md` | IT01, IT02, IT03 |
+| cli-contract.md | `specs/backend/04-execution/cli-contract.md` | Exit codes validados |
+| runner-pipeline.md | `specs/backend/04-execution/runner-pipeline.md` | Pipeline steps |
+| csv-format.md | `specs/backend/05-transformation/csv-format.md` | Newline normalization |
+
+### Decisões Tomadas
+
+#### 1. Configuração Runtime via Environment Variables
+
+**Implementado em API e Runner:**
+- `METRICS_SQLITE_PATH`: Path do arquivo SQLite
+- `METRICS_SECRET__<authRef>`: Segredo para autenticação de connector
+
+**Precedência:**
+1. CLI args (se aplicável)
+2. Environment variables
+3. Default (./config/config.db)
+
+#### 2. WireMock.Net vs Docker
+
+**Opção Selecionada:** WireMock.Net (in-process)
+
+| Opção | Vantagem | Desvantagem |
+|-------|----------|-------------|
+| WireMock.Net | Sem Docker, rápido, porta dinâmica | - |
+| Testcontainers | Mais "real" | Requer Docker Desktop |
+
+**Razão:** Spec diz "WireMock.Net (preferido, in-process, sem Docker)"
+
+#### 3. Paralelização de Testes Desabilitada
+
+**Problema:** Tests modificam environment variables globais (METRICS_SQLITE_PATH), causando race conditions quando executados em paralelo.
+
+**Solução:** `[assembly: Xunit.CollectionBehavior(DisableTestParallelization = true)]`
+
+**Trade-off:** Testes Integration rodam ~20s (sequencial) vs ~5s (paralelo)
+
+#### 4. Runner como Processo Real
+
+**Implementação:** Runner CLI é executado via `dotnet run --project` como processo separado, não como chamada de método em memória.
+
+**Razão:** Spec exige "Runner CLI executado como processo real" para validar comportamento end-to-end incluindo:
+- Environment variable handling
+- Exit codes
+- File I/O
+
+### Arquivos Criados/Modificados
+
+| Arquivo | Mudança |
+|---------|---------|
+| `src/Api/Program.cs` | +Suporte METRICS_SQLITE_PATH env var |
+| `src/Runner/Program.cs` | +Precedência env var sobre default |
+| `src/Runner/PipelineOrchestrator.cs` | +METRICS_SECRET__<authRef>, +InitializeDatabase |
+| `tests/Integration.Tests/` | Novo projeto |
+| `tests/Integration.Tests/IT01_CrudPersistenceTests.cs` | 5 testes CRUD |
+| `tests/Integration.Tests/IT02_EndToEndRunnerTests.cs` | 2 testes E2E |
+| `tests/Integration.Tests/IT03_SourceFailureTests.cs` | 5 testes de falha |
+| `tests/Integration.Tests/TestWebApplicationFactory.cs` | Factory customizada |
+| `tests/Integration.Tests/TestFixtures.cs` | Helpers e DTOs |
+| `tests/Integration.Tests/AssemblyAttributes.cs` | Desabilita parallelism |
+
+### Problemas Encontrados e Soluções
+
+#### P1: "No such table: ProcessVersion" ao executar Runner
+**Sintoma:** Runner executado como processo externo falhava com erro de BD vazia  
+**Causa-raiz:** Runner iniciava em novo processo sem tabelas SQLite; API as criava na memória apenas  
+**Solução Implementada:**
+- Adicionado `_databaseProvider.InitializeDatabase(context.DbPath)` em `PipelineOrchestrator`
+- Garante que toda execução de Runner cria schema se não existir
+
+**Arquivo Afetado:** `src/Runner/PipelineOrchestrator.cs`
+
+#### P2: Race conditions entre testes (parallelization)
+**Sintoma:** Alguns testes falhavam aleatoriamente; `METRICS_SQLITE_PATH` era compartilhado  
+**Causa-raiz:** xUnit executava testes em paralelo; variáveis globais (env vars) eram sobrescritas entre testes  
+**Solução Implementada:**
+- Desabilitou paralelização: `[assembly: CollectionBehavior(DisableTestParallelization = true)]`
+- Cada teste roda sequencialmente com seu próprio arquivo SQLite isolado
+
+**Arquivo Afetado:** `tests/Integration.Tests/AssemblyAttributes.cs`  
+**Trade-off:** Tempo aumenta ~4x (5s paralelo → 20s sequencial), mas garante determinismo
+
+#### P3: HTTPS redirection warnings durante testes
+**Sintoma:** Logs cheios de `WRN] Failed to determine the https port for redirect`  
+**Causa-raiz:** Middleware `UseHttpsRedirection()` ativo em ambiente HTTP-only de testes  
+**Solução Implementada:**
+```csharp
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    app.UseHttpsRedirection();
+}
+```
+- `TestWebApplicationFactory` define `builder.UseEnvironment("Testing")`
+- HTTPS redirect desabilitado automaticamente em testes
+
+**Arquivo Afetado:** `src/Api/Program.cs`, `tests/Integration.Tests/TestWebApplicationFactory.cs`
+
+#### P4: Injeção de secrets do Runner em ambiente de testes
+**Sintoma:** Runner precisava acessar segredos (auth headers) sem ler arquivo local  
+**Causa-raiz:** Testes rodavam com variáveis globais; arquivo `secrets.local.json` pode não estar presente ou estar corrompido  
+**Solução Implementada:**
+- Adicionado suporte `METRICS_SECRET__<authRef>` em `PipelineOrchestrator`
+- Testes injetam segredos via environment variables
+- Precedência: env var > arquivo local > null (sem secret)
+
+**Arquivo Afetado:** `src/Runner/PipelineOrchestrator.cs`
+
+### Resultados
+
+**Tests:** ✅ 30/30 PASSED
+- Contracts.Tests: 14 ✅
+- Engine.Tests: 4 ✅
+- Integration.Tests: 12 ✅
+  - IT01: 5 testes (CRUD smoke)
+  - IT02: 2 testes (E2E com WireMock)
+  - IT03: 5 testes (Source failures)
+
+**Exit Codes Validados:**
+- 0 = OK ✅
+- 20 = NOT_FOUND ✅
+- 30 = DISABLED ✅
+- 40 = SOURCE_ERROR ✅
+
+**Build Status:**
+```
+dotnet build:    ✅ (0 erros, 2 warnings NuGet)
+dotnet test:     ✅ (30/30 passed, ~21.5s)
+Logs:            ✅ (sem warnings críticos)
+```
+
+### Cobertura de Cenários
+
+| Teste | Objetivo | Validação |
+|-------|----------|-----------|
+| **IT01-Create** | CRUD básico | Connector/Process/Version criados com IDs únicos |
+| **IT01-Read** | Persistência | Dados recuperados exatamente como salvos |
+| **IT01-List** | Ordenação | Listas ordenadas estável (ASC) |
+| **IT01-Update** | Mutação | Dados sobrescritos corretamente |
+| **IT01-Delete** | Remoção | Registros deletados; 404 ao recuperar |
+| **IT02-E2E-Happy** | Fluxo feliz | Connector → Process → Version → Run → CSV gerado ✓ |
+| **IT02-E2E-Auth** | Autenticação | Secret injetado via env var; Bearer token adicionado corretamente |
+| **IT03-NotFound** | 404 source | Exit code 20 quando connector não existe |
+| **IT03-Disabled** | Version desabilitada | Exit code 30 quando version.enabled=false |
+| **IT03-NoSecret** | Secret faltando | Execução com secret=null (source não valida auth) |
+| **IT03-BadUrl** | URL inválida | Exit code 40 quando source retorna 404 |
+| **IT03-BadPayload** | Payload inválido | Exit code 50 quando transform falha |
+
+### Como Executar
+
+```bash
+# Todos os testes (incluindo unit + integration)
+dotnet test
+
+# Apenas integration tests
+dotnet test tests/Integration.Tests/Integration.Tests.csproj
+
+# Com verbosidade e output detalhado
+dotnet test --verbosity detailed --logger "console;verbosity=detailed"
+```
+
+---
+
 ## Etapa A-E: Alinhamento com Spec v1.1.2 (Schema Hygiene + DSL Jsonata Real)
 
 **Data:** 2025-01-15 (inicial); 2026-01-02 (revisada com implementação Jsonata)  

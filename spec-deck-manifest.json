@@ -1,15 +1,15 @@
 {
   "name": "metrics-simple-spec-deck",
-  "version": "1.1.3",
-  "generatedAt": "2026-01-02T14:56:25.542302+00:00",
+  "version": "1.2.0",
+  "generatedAt": "2026-01-02",
   "files": [
     {
       "path": ".github/agents/spec-driven-builder.agent.md",
-      "sha256": "bbd55d7074e0684b571bde52b1cf4f703b5924a27d8ce6dbca4e00f7f2d5f0f1"
+      "sha256": "fbd133fa931fe10570eac287193d9e4692e45a9f25245e88d2baa57f02606143"
     },
     {
       "path": ".github/copilot-instructions.md",
-      "sha256": "2175224820de0f41e48efec507f150500674a9f16e0895c2ff65ed43b64295a3"
+      "sha256": "9a3c99cae723538a46680c388106f3987c57b8b19b3089c4da24239398f1e791"
     },
     {
       "path": "PROMPTS.md",
@@ -17,23 +17,23 @@
     },
     {
       "path": "README.md",
-      "sha256": "c160196b103df7cdd47d3b83a0ce16190256e944c1637bd98efbb310b3788368"
+      "sha256": "8b11d744c729e53bd86e4854d728117f0359ac0fdcb6f9a25ff58b7d047387a3"
     },
     {
       "path": "RELEASE_NOTES.md",
-      "sha256": "ce4d4da5c582119dc0912ba354bd817f4b51982032454b7f2177d456b07b88f2"
+      "sha256": "b8c09b3bbfb460e041f04b19eb64e8365209470b67504978f9f190da361326d8"
     },
     {
       "path": "SCOPE.md",
-      "sha256": "42ff0f9523e7d5fefd5c5778b715b905a7dac9ccec12e371830bdb2b7c155694"
+      "sha256": "df651ff3c128067e9221157e6de561c1a945f68da1ceb32aa346031aa45c8aca"
     },
     {
       "path": "TECH_STACK.md",
-      "sha256": "5401d4380eab8692cfa055ab9fd7eaa0ab6acff302a835e2322345f408788937"
+      "sha256": "22b03427737293fcddeea495efc64623a0e30566b18bbea99aa92b10bf0b0bed"
     },
     {
       "path": "VERSION.md",
-      "sha256": "646fecd35bb0e827420f0836dd3f2ce4de3f001a33943f5d70ae02b2cfb3787e"
+      "sha256": "b776094069b34e249b2d7d6a3de953fd2fe480670725daee7c23d18e08838e5c"
     },
     {
       "path": "docs/EVOLUTION.md",
@@ -53,11 +53,11 @@
     },
     {
       "path": "specs/backend/00-vision/requirements.md",
-      "sha256": "d75bb2cd8cbcac49e3f0a4375d6bd1c387c02e436cbe15dc0e10f6460bf46f73"
+      "sha256": "3e10cb16ad0aa236104eb02edc1ac40b25b50cc5a2c1fb481a4ef73b95d83a79"
     },
     {
       "path": "specs/backend/00-vision/spec-index.md",
-      "sha256": "828e076a152b1be0235e5a3c6ee076d36f0c00f97ddb7b3594c8dad61c658b1e"
+      "sha256": "49b77aa46899336d5a387d5219b09d347a72723cd465acc1a0922df9a2d4e418"
     },
     {
       "path": "specs/backend/00-vision/traceability.md",
@@ -93,7 +93,7 @@
     },
     {
       "path": "specs/backend/04-execution/cli-contract.md",
-      "sha256": "2090f5d579d75ffe425bd2eb2c08781424107467e69505c03198bff5587dac3e"
+      "sha256": "a471d384b400416108183c7465ad6b9d6df5d66397523ceb2495a72874258d37"
     },
     {
       "path": "specs/backend/04-execution/runner-pipeline.md",
@@ -225,11 +225,15 @@
     },
     {
       "path": "specs/backend/09-testing/backend-contract-tests.md",
-      "sha256": "4b0fac5d6c617dd91bc5e1fe6a7e29cd9b43bfabb629107354e593696972bd9d"
+      "sha256": "abeb36be68c01479ab706554bdcbace2a5758466a9a581e3b0c752ada138de9e"
     },
     {
       "path": "specs/backend/09-testing/golden-tests.md",
       "sha256": "935ad70c7e3cc4ec01fa366802506f1dd7ca5d59b9ebc29d9eab237af3943de1"
+    },
+    {
+      "path": "specs/backend/09-testing/integration-tests.md",
+      "sha256": "880e1fda3de37a74135f8bb862015aba79059e8783e4b88118977be7db46299f"
     },
     {
       "path": "specs/backend/09-testing/repository-tests.md",
@@ -237,7 +241,7 @@
     },
     {
       "path": "specs/backend/README.md",
-      "sha256": "643891def2530fbe39147abd0cb9c7da517bd1ceaa0c019d5aa6fa8f49fac74f"
+      "sha256": "a061a5ff638524bc12e144024fae83d092ff62ef75e84f47bf0ceedd70e920a7"
     },
     {
       "path": "specs/frontend/00-vision/spec-index.md",
@@ -258,6 +262,10 @@
     {
       "path": "specs/frontend/11-ui/component-specs.md",
       "sha256": "04b26113917883b516d5b81743f7154db16691261a881e11532dae0a954a5438"
+    },
+    {
+      "path": "specs/frontend/11-ui/components.md",
+      "sha256": "a24676ae7d7f3e43690fa279d53a1e7a402ef9c5c71660bb6fb75fd0f00d9682"
     },
     {
       "path": "specs/frontend/11-ui/components/README.md",
@@ -298,10 +306,6 @@
     {
       "path": "specs/frontend/11-ui/components/status-chip.md",
       "sha256": "23b209c3ae0c8af40991ec59da14ab8d82d4a383c1143944d1ee9a8482a29b54"
-    },
-    {
-      "path": "specs/frontend/11-ui/components.md",
-      "sha256": "a24676ae7d7f3e43690fa279d53a1e7a402ef9c5c71660bb6fb75fd0f00d9682"
     },
     {
       "path": "specs/frontend/11-ui/data-contract-mapping.md",
@@ -433,7 +437,7 @@
     },
     {
       "path": "specs/shared/README.md",
-      "sha256": "819e3204330e651c108eec8473458a71b2069edc684fd64377efda212dbd5936"
+      "sha256": "b89554d6d0932282705da417536aae1be8f9be0dfec58c2fa7a86fe28c312775"
     },
     {
       "path": "specs/shared/domain/SCHEMA_GUIDE.md",
@@ -529,7 +533,7 @@
     },
     {
       "path": "specs/shared/spec-manifest.json",
-      "sha256": "726cb8cdc6437f933b97a90b0312893eb5e78f7be8e5fe47c16d6216dbae2c6e"
+      "sha256": "fb9533d22c6453c1006bc2d765f7db72832a983ef85bb0b197b58848f969d732"
     },
     {
       "path": "specs/spec-index.md",

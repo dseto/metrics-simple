@@ -1,5 +1,16 @@
 # Release Notes
 
+## 1.2.0 (2026-01-02)
+- **Obrigatório**: Integration Tests (E2E) do backend com:
+  - WebApplicationFactory (API in-memory)
+  - Mock HTTP real para FetchSource (WireMock.Net preferido)
+  - Runner CLI executado como processo real
+  - SQLite real via `METRICS_SQLITE_PATH`
+  - Secrets via `METRICS_SECRET__<authRef>`
+- Novo spec: `specs/backend/09-testing/integration-tests.md`
+- Playbook do agent atualizado para incluir etapa de Integration Tests.
+- Stack atualizada para **.NET 10** no deck e nas instruções de governança.
+
 ## 1.1.3 (2026-01-02)
 - Engine: normalização obrigatória do output do DSL para **rows array** antes de validar schema/gerar CSV (object -> [object], null -> []) para lidar com edge cases do JSONata (ex.: `$map` com 1 item).
 - CSV determinístico reforçado:
