@@ -1,0 +1,245 @@
+openapi: 3.0.3
+info:
+  title: Metrics Simple Config API
+  version: 1.1.0
+servers:
+  - url: /api
+paths:
+  /processes:
+    get:
+      summary: Lista processos
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Process' }
+    post:
+      summary: Cria processo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Process' }
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Process' }
+
+  /processes/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string }
+    get:
+      summary: Obtém processo
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Process' }
+    put:
+      summary: Atualiza processo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Process' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Process' }
+    delete:
+      summary: Remove processo
+      responses:
+        '204': { description: Removido }
+
+  /processes/{id}/versions:
+    post:
+      summary: Cria versão
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProcessVersion' }
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProcessVersion' }
+
+  /processes/{id}/versions/{version}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string }
+      - in: path
+        name: version
+        required: true
+        schema: { type: string }
+    get:
+      summary: Obtém versão
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProcessVersion' }
+    put:
+      summary: Atualiza versão
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProcessVersion' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProcessVersion' }
+
+  /connectors:
+    get:
+      summary: Lista conectores
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Connector' }
+    post:
+      summary: Cria conector
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Connector' }
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Connector' }
+
+  /preview/transform:
+    post:
+      summary: Preview transform (design-time)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PreviewTransformRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PreviewTransformResponse' }
+
+components:
+  schemas:
+    Process:
+      type: object
+      required: [id, name, status, connectorId, outputDestinations]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        status: { type: string, enum: [Draft, Active, Disabled] }
+        connectorId: { type: string }
+        outputDestinations:
+          type: array
+          items: { $ref: '#/components/schemas/OutputDestination' }
+
+    ProcessVersion:
+      type: object
+      required: [processId, version, enabled, sourceRequest, dsl, outputSchema]
+      properties:
+        processId: { type: string }
+        version: { type: string }
+        enabled: { type: boolean }
+        sourceRequest: { $ref: '#/components/schemas/SourceRequest' }
+        dsl:
+          type: object
+          required: [profile, text]
+          properties:
+            profile: { type: string, enum: [jsonata, jmespath, custom] }
+            text: { type: string }
+        outputSchema: { type: object }
+        sampleInput: { type: object }
+
+    SourceRequest:
+      type: object
+      required: [method, path]
+      properties:
+        method: { type: string, enum: [GET, POST, PUT, DELETE] }
+        path: { type: string }
+        headers: { type: object, additionalProperties: { type: string } }
+        queryParams: { type: object, additionalProperties: { type: string } }
+
+    Connector:
+      type: object
+      required: [id, name, baseUrl, timeoutSeconds, authRef]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        baseUrl: { type: string }
+        authRef: { type: string }
+        timeoutSeconds: { type: integer }
+
+    OutputDestination:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string, enum: [LocalFileSystem, AzureBlobStorage] }
+        local:
+          type: object
+          properties:
+            basePath: { type: string }
+        blob:
+          type: object
+          properties:
+            connectionStringRef: { type: string }
+            container: { type: string }
+            pathPrefix: { type: string }
+
+    PreviewTransformRequest:
+      type: object
+      required: [dsl, outputSchema, sampleInput]
+      properties:
+        dsl:
+          type: object
+          required: [profile, text]
+          properties:
+            profile: { type: string }
+            text: { type: string }
+        outputSchema: { type: object }
+        sampleInput: { type: object }
+
+    PreviewTransformResponse:
+      type: object
+      required: [isValid, errors]
+      properties:
+        isValid: { type: boolean }
+        errors:
+          type: array
+          items: { type: string }
+        previewOutput: { type: object }
+        previewCsv: { type: string }

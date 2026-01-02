@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="NJsonSchema" Version="11.0.2" />
+    <PackageReference Include="YamlDotNet" Version="15.3.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\specs\03-interfaces\openapi-config-api.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\02-domain\schemas\connector.schema.json" Link="schemas\connector.schema.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\02-domain\schemas\process.schema.json" Link="schemas\process.schema.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\02-domain\schemas\processVersion.schema.json" Link="schemas\processVersion.schema.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\02-domain\schemas\sourceRequest.schema.json" Link="schemas\sourceRequest.schema.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\02-domain\schemas\secretConfig.schema.json" Link="schemas\secretConfig.schema.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\02-domain\schemas\schedule.schema.json" Link="schemas\schedule.schema.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Api\Api.csproj" />
+  </ItemGroup>
+</Project>

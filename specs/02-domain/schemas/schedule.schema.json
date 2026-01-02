@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/schedule.schema.json",
+  "title": "Schedule",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "None",
+        "Cron",
+        "Interval"
+      ],
+      "default": "None"
+    },
+    "cron": {
+      "type": "string"
+    },
+    "intervalSeconds": {
+      "type": "integer",
+      "minimum": 1
+    }
+  }
+}

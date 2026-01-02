@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Metrics.Engine</AssemblyName>
+    <RootNamespace>Metrics.Engine</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NJsonSchema" Version="11.0.2" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.21.2" />
+  </ItemGroup>
+</Project>

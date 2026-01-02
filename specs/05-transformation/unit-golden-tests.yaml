@@ -1,0 +1,10 @@
+tests:
+  - name: hosts_cpu_transform
+    dslProfile: jsonata
+    inputFile: dsl-examples/example-input.json
+    dslFile: dsl-examples/example-transform.dsl
+    expectedOutputFile: dsl-examples/expected-output.json
+    expectedSchemaFile: dsl-examples/expected-output.schema.json
+    csv:
+      expectedHeader: "host,cpu"
+      expectedFirstRow: "h1,0.5"

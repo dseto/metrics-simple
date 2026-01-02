@@ -1,0 +1,147 @@
+2026-01-02T09:26:32.7862504-03:00 [DBG] Microsoft.Extensions.Hosting.Internal.Host Hosting starting
+2026-01-02T09:26:32.9361102-03:00 [DBG] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware Middleware configuration started with options: {AllowedHosts = *, AllowEmptyHosts = True, IncludeFailureMessage = True}
+2026-01-02T09:26:32.9384511-03:00 [DBG] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware Wildcard detected, all requests with hosts will be allowed.
+2026-01-02T09:26:32.9767417-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel No listening endpoints were configured. Binding to http://localhost:5000 by default.
+2026-01-02T09:26:32.9779114-03:00 [INF] Microsoft.Hosting.Lifetime Now listening on: http://localhost:5000
+2026-01-02T09:26:32.9780697-03:00 [DBG] Microsoft.AspNetCore.Hosting.Diagnostics Loaded hosting startup assembly Metrics.Api
+2026-01-02T09:26:32.9782460-03:00 [INF] Microsoft.Hosting.Lifetime Application started. Press Ctrl+C to shut down.
+2026-01-02T09:26:32.9783175-03:00 [INF] Microsoft.Hosting.Lifetime Hosting environment: Development
+2026-01-02T09:26:32.9784398-03:00 [INF] Microsoft.Hosting.Lifetime Content root path: C:\Projetos\metrics-simple\src\Api
+2026-01-02T09:26:32.9785037-03:00 [DBG] Microsoft.Extensions.Hosting.Internal.Host Hosting started
+2026-01-02T09:28:42.3411344-03:00 [DBG] Microsoft.Extensions.Hosting.Internal.Host Hosting starting
+2026-01-02T09:28:42.4433630-03:00 [DBG] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware Middleware configuration started with options: {AllowedHosts = *, AllowEmptyHosts = True, IncludeFailureMessage = True}
+2026-01-02T09:28:42.4456618-03:00 [DBG] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware Wildcard detected, all requests with hosts will be allowed.
+2026-01-02T09:28:42.5052532-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel No listening endpoints were configured. Binding to http://localhost:5000 by default.
+2026-01-02T09:28:42.5061741-03:00 [INF] Microsoft.Hosting.Lifetime Now listening on: http://localhost:5000
+2026-01-02T09:28:42.5063209-03:00 [DBG] Microsoft.AspNetCore.Hosting.Diagnostics Loaded hosting startup assembly Metrics.Api
+2026-01-02T09:28:42.5065731-03:00 [INF] Microsoft.Hosting.Lifetime Application started. Press Ctrl+C to shut down.
+2026-01-02T09:28:42.5066599-03:00 [INF] Microsoft.Hosting.Lifetime Hosting environment: Development
+2026-01-02T09:28:42.5067057-03:00 [INF] Microsoft.Hosting.Lifetime Content root path: C:\Projetos\metrics-simple\src\Api
+2026-01-02T09:28:42.5067902-03:00 [DBG] Microsoft.Extensions.Hosting.Internal.Host Hosting started
+2026-01-02T09:30:37.4177251-03:00 [DBG] Microsoft.Extensions.Hosting.Internal.Host Hosting starting
+2026-01-02T09:30:37.5237919-03:00 [DBG] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware Middleware configuration started with options: {AllowedHosts = *, AllowEmptyHosts = True, IncludeFailureMessage = True}
+2026-01-02T09:30:37.5260852-03:00 [DBG] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware Wildcard detected, all requests with hosts will be allowed.
+2026-01-02T09:30:37.5854394-03:00 [INF] Microsoft.Hosting.Lifetime Now listening on: http://localhost:5000
+2026-01-02T09:30:37.5856140-03:00 [DBG] Microsoft.AspNetCore.Hosting.Diagnostics Loaded hosting startup assembly Metrics.Api
+2026-01-02T09:30:37.5858204-03:00 [INF] Microsoft.Hosting.Lifetime Application started. Press Ctrl+C to shut down.
+2026-01-02T09:30:37.5861516-03:00 [INF] Microsoft.Hosting.Lifetime Hosting environment: Development
+2026-01-02T09:30:37.5862019-03:00 [INF] Microsoft.Hosting.Lifetime Content root path: C:\Projetos\metrics-simple\src\Api
+2026-01-02T09:30:37.5862628-03:00 [DBG] Microsoft.Extensions.Hosting.Internal.Host Hosting started
+2026-01-02T09:30:43.3058314-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6UP" accepted.
+2026-01-02T09:30:43.3082322-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6UP" started.
+2026-01-02T09:30:43.3242563-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6UQ" accepted.
+2026-01-02T09:30:43.3291576-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6UQ" started.
+2026-01-02T09:30:43.3872648-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request starting HTTP/1.1 GET http://localhost:5000/ - null null
+2026-01-02T09:30:43.6993925-03:00 [DBG] Microsoft.AspNetCore.Routing.Matching.DfaMatcher No candidates found for the request path '/'
+2026-01-02T09:30:43.7010000-03:00 [DBG] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware Request did not match any endpoints
+2026-01-02T09:30:43.7404404-03:00 [DBG] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware The request path  does not match the path filter
+2026-01-02T09:30:43.7432277-03:00 [WRN] Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware Failed to determine the https port for redirect.
+2026-01-02T09:30:43.7710267-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6UP" completed keep alive response.
+2026-01-02T09:30:43.7747904-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request finished HTTP/1.1 GET http://localhost:5000/ - 404 0 null 391.2548ms
+2026-01-02T09:30:43.7956467-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request reached the end of the middleware pipeline without being handled by application code. Request path: GET http://localhost:5000/, Response status code: 404
+2026-01-02T09:30:45.9796537-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets Connection id "0HNI9VAVKH6UQ" received FIN.
+2026-01-02T09:30:45.9796595-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets Connection id "0HNI9VAVKH6UP" received FIN.
+2026-01-02T09:30:45.9857354-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets Connection id "0HNI9VAVKH6UQ" sending FIN because: "The Socket transport's send loop completed gracefully."
+2026-01-02T09:30:45.9857353-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets Connection id "0HNI9VAVKH6UP" sending FIN because: "The Socket transport's send loop completed gracefully."
+2026-01-02T09:30:45.9867776-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6UQ" disconnecting.
+2026-01-02T09:30:45.9871265-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6UP" disconnecting.
+2026-01-02T09:30:45.9942184-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6UP" stopped.
+2026-01-02T09:30:45.9942185-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6UQ" stopped.
+2026-01-02T09:30:49.9324753-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6UR" accepted.
+2026-01-02T09:30:49.9327014-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6UR" started.
+2026-01-02T09:30:49.9328533-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6US" accepted.
+2026-01-02T09:30:49.9329284-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6US" started.
+2026-01-02T09:30:49.9334880-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request starting HTTP/1.1 GET http://localhost:5000/ - null null
+2026-01-02T09:30:49.9337042-03:00 [DBG] Microsoft.AspNetCore.Routing.Matching.DfaMatcher No candidates found for the request path '/'
+2026-01-02T09:30:49.9338392-03:00 [DBG] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware Request did not match any endpoints
+2026-01-02T09:30:49.9349109-03:00 [DBG] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware The request path  does not match the path filter
+2026-01-02T09:30:49.9352471-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6UR" completed keep alive response.
+2026-01-02T09:30:49.9354919-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request finished HTTP/1.1 GET http://localhost:5000/ - 404 0 null 1.9881ms
+2026-01-02T09:30:49.9358039-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request reached the end of the middleware pipeline without being handled by application code. Request path: GET http://localhost:5000/, Response status code: 404
+2026-01-02T09:30:51.5144198-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request starting HTTP/1.1 GET http://localhost:5000/ - null null
+2026-01-02T09:30:51.5146522-03:00 [DBG] Microsoft.AspNetCore.Routing.Matching.DfaMatcher No candidates found for the request path '/'
+2026-01-02T09:30:51.5147239-03:00 [DBG] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware Request did not match any endpoints
+2026-01-02T09:30:51.5155082-03:00 [DBG] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware The request path  does not match the path filter
+2026-01-02T09:30:51.5156679-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6UR" completed keep alive response.
+2026-01-02T09:30:51.5157908-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request finished HTTP/1.1 GET http://localhost:5000/ - 404 0 null 1.3745ms
+2026-01-02T09:30:51.5159422-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request reached the end of the middleware pipeline without being handled by application code. Request path: GET http://localhost:5000/, Response status code: 404
+2026-01-02T09:30:59.8833685-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request starting HTTP/1.1 GET http://localhost:5000/docs - null null
+2026-01-02T09:30:59.8835433-03:00 [DBG] Microsoft.AspNetCore.Routing.Matching.DfaMatcher No candidates found for the request path '/docs'
+2026-01-02T09:30:59.8835857-03:00 [DBG] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware Request did not match any endpoints
+2026-01-02T09:30:59.8837214-03:00 [DBG] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware The request path  does not match the path filter
+2026-01-02T09:30:59.8837967-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6UR" completed keep alive response.
+2026-01-02T09:30:59.8839164-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request finished HTTP/1.1 GET http://localhost:5000/docs - 404 0 null 0.5378ms
+2026-01-02T09:30:59.8840519-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request reached the end of the middleware pipeline without being handled by application code. Request path: GET http://localhost:5000/docs, Response status code: 404
+2026-01-02T09:31:18.6563075-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request starting HTTP/1.1 GET http://localhost:5000/swagger - null null
+2026-01-02T09:31:18.6564585-03:00 [DBG] Microsoft.AspNetCore.Routing.Matching.DfaMatcher No candidates found for the request path '/swagger'
+2026-01-02T09:31:18.6565184-03:00 [DBG] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware Request did not match any endpoints
+2026-01-02T09:31:18.6576213-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6UR" completed keep alive response.
+2026-01-02T09:31:18.6577979-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request finished HTTP/1.1 GET http://localhost:5000/swagger - 301 0 null 1.475ms
+2026-01-02T09:31:18.6612379-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request starting HTTP/1.1 GET http://localhost:5000/swagger/index.html - null null
+2026-01-02T09:31:18.6614438-03:00 [DBG] Microsoft.AspNetCore.Routing.Matching.DfaMatcher No candidates found for the request path '/swagger/index.html'
+2026-01-02T09:31:18.6615026-03:00 [DBG] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware Request did not match any endpoints
+2026-01-02T09:31:18.6982086-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6UR" completed keep alive response.
+2026-01-02T09:31:18.6983861-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request finished HTTP/1.1 GET http://localhost:5000/swagger/index.html - 200 null text/html;charset=utf-8 37.1499ms
+2026-01-02T09:31:18.7336037-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request starting HTTP/1.1 GET http://localhost:5000/swagger/swagger-ui-bundle.js - null null
+2026-01-02T09:31:18.7336041-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request starting HTTP/1.1 GET http://localhost:5000/swagger/swagger-ui.css - null null
+2026-01-02T09:31:18.7337949-03:00 [DBG] Microsoft.AspNetCore.Routing.Matching.DfaMatcher No candidates found for the request path '/swagger/swagger-ui.css'
+2026-01-02T09:31:18.7337886-03:00 [DBG] Microsoft.AspNetCore.Routing.Matching.DfaMatcher No candidates found for the request path '/swagger/swagger-ui-bundle.js'
+2026-01-02T09:31:18.7338803-03:00 [DBG] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware Request did not match any endpoints
+2026-01-02T09:31:18.7339025-03:00 [DBG] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware Request did not match any endpoints
+2026-01-02T09:31:18.7354206-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6UT" accepted.
+2026-01-02T09:31:18.7355439-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6UT" started.
+2026-01-02T09:31:18.7358242-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request starting HTTP/1.1 GET http://localhost:5000/swagger/swagger-ui-standalone-preset.js - null null
+2026-01-02T09:31:18.7359402-03:00 [DBG] Microsoft.AspNetCore.Routing.Matching.DfaMatcher No candidates found for the request path '/swagger/swagger-ui-standalone-preset.js'
+2026-01-02T09:31:18.7360031-03:00 [DBG] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware Request did not match any endpoints
+2026-01-02T09:31:18.7635469-03:00 [INF] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware Sending file. Request path: '/swagger-ui.css'. Physical path: 'N/A'
+2026-01-02T09:31:18.7635445-03:00 [INF] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware Sending file. Request path: '/swagger-ui-standalone-preset.js'. Physical path: 'N/A'
+2026-01-02T09:31:18.7656734-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6UT" completed keep alive response.
+2026-01-02T09:31:18.7656734-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6UR" completed keep alive response.
+2026-01-02T09:31:18.7660516-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request finished HTTP/1.1 GET http://localhost:5000/swagger/swagger-ui.css - 200 144929 text/css 32.3729ms
+2026-01-02T09:31:18.7660961-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request finished HTTP/1.1 GET http://localhost:5000/swagger/swagger-ui-standalone-preset.js - 200 312163 text/javascript 30.127ms
+2026-01-02T09:31:18.7671282-03:00 [INF] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware Sending file. Request path: '/swagger-ui-bundle.js'. Physical path: 'N/A'
+2026-01-02T09:31:18.7673095-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6US" completed keep alive response.
+2026-01-02T09:31:18.7675605-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request finished HTTP/1.1 GET http://localhost:5000/swagger/swagger-ui-bundle.js - 200 1061536 text/javascript 33.8759ms
+2026-01-02T09:31:18.8978668-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request starting HTTP/1.1 GET http://localhost:5000/swagger/v1/swagger.json - null null
+2026-01-02T09:31:18.8979885-03:00 [DBG] Microsoft.AspNetCore.Routing.Matching.DfaMatcher No candidates found for the request path '/swagger/v1/swagger.json'
+2026-01-02T09:31:18.8980340-03:00 [DBG] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware Request did not match any endpoints
+2026-01-02T09:31:18.9016926-03:00 [INF] Microsoft.AspNetCore.Mvc.Infrastructure.DefaultActionDescriptorCollectionProvider No action descriptors found. This may indicate an incorrectly configured application or missing application parts. To learn more, visit https://aka.ms/aspnet/mvc/app-parts
+2026-01-02T09:31:18.9039750-03:00 [DBG] Microsoft.AspNetCore.Mvc.ApiExplorer.ApiDescriptionGroupCollectionProvider Executing API description provider 'EndpointMetadataApiDescriptionProvider' from assembly Microsoft.AspNetCore.Mvc.ApiExplorer v10.0.0.0.
+2026-01-02T09:31:18.9342641-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request starting HTTP/1.1 GET http://localhost:5000/swagger/favicon-32x32.png - null null
+2026-01-02T09:31:18.9344093-03:00 [DBG] Microsoft.AspNetCore.Routing.Matching.DfaMatcher No candidates found for the request path '/swagger/favicon-32x32.png'
+2026-01-02T09:31:18.9344537-03:00 [DBG] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware Request did not match any endpoints
+2026-01-02T09:31:18.9349096-03:00 [INF] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware Sending file. Request path: '/favicon-32x32.png'. Physical path: 'N/A'
+2026-01-02T09:31:18.9350139-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6UT" completed keep alive response.
+2026-01-02T09:31:18.9351155-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request finished HTTP/1.1 GET http://localhost:5000/swagger/favicon-32x32.png - 200 628 image/png 0.8482ms
+2026-01-02T09:31:19.0284689-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6US" completed keep alive response.
+2026-01-02T09:31:19.0286522-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request finished HTTP/1.1 GET http://localhost:5000/swagger/v1/swagger.json - 200 null application/json;charset=utf-8 130.782ms
+2026-01-02T09:31:28.5239201-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request starting HTTP/1.1 GET http://localhost:5000/api/health - null null
+2026-01-02T09:31:28.5298440-03:00 [DBG] Microsoft.AspNetCore.Routing.Matching.DfaMatcher 1 candidate(s) found for the request path '/api/health'
+2026-01-02T09:31:28.5304622-03:00 [DBG] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware Request matched endpoint 'HTTP: GET /api/health => GetHealth'
+2026-01-02T09:31:28.5319517-03:00 [DBG] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware Static files was skipped as the request already matched an endpoint.
+2026-01-02T09:31:28.5742618-03:00 [INF] Microsoft.AspNetCore.Routing.EndpointMiddleware Executing endpoint 'HTTP: GET /api/health => GetHealth'
+2026-01-02T09:31:28.5874364-03:00 [INF] Microsoft.AspNetCore.Http.Result.OkObjectResult Setting HTTP status code 200.
+2026-01-02T09:31:28.5892679-03:00 [INF] Microsoft.AspNetCore.Http.Result.OkObjectResult Writing value of type '<>f__AnonymousType0`1' as Json.
+2026-01-02T09:31:28.5913583-03:00 [INF] Microsoft.AspNetCore.Routing.EndpointMiddleware Executed endpoint 'HTTP: GET /api/health => GetHealth'
+2026-01-02T09:31:28.5914359-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6US" completed keep alive response.
+2026-01-02T09:31:28.5915735-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request finished HTTP/1.1 GET http://localhost:5000/api/health - 200 null application/json; charset=utf-8 67.6385ms
+2026-01-02T09:31:58.9129735-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request starting HTTP/1.1 GET http://localhost:5000/api/connectors - null null
+2026-01-02T09:31:58.9138517-03:00 [DBG] Microsoft.AspNetCore.Routing.Matching.DfaMatcher 1 candidate(s) found for the request path '/api/connectors'
+2026-01-02T09:31:58.9139859-03:00 [DBG] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware Request matched endpoint 'HTTP: GET /api/connectors/ => GetAllConnectors'
+2026-01-02T09:31:58.9141998-03:00 [DBG] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware Static files was skipped as the request already matched an endpoint.
+2026-01-02T09:31:58.9142798-03:00 [INF] Microsoft.AspNetCore.Routing.EndpointMiddleware Executing endpoint 'HTTP: GET /api/connectors/ => GetAllConnectors'
+2026-01-02T09:31:58.9516252-03:00 [INF] Microsoft.AspNetCore.Http.Result.OkObjectResult Setting HTTP status code 200.
+2026-01-02T09:31:58.9520176-03:00 [INF] Microsoft.AspNetCore.Http.Result.OkObjectResult Writing value of type 'List`1' as Json.
+2026-01-02T09:31:58.9523383-03:00 [INF] Microsoft.AspNetCore.Routing.EndpointMiddleware Executed endpoint 'HTTP: GET /api/connectors/ => GetAllConnectors'
+2026-01-02T09:31:58.9523861-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6US" completed keep alive response.
+2026-01-02T09:31:58.9525064-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request finished HTTP/1.1 GET http://localhost:5000/api/connectors - 200 null application/json; charset=utf-8 39.5206ms
+2026-01-02T09:32:04.9326514-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request starting HTTP/1.1 GET http://localhost:5000/api/processes - null null
+2026-01-02T09:32:04.9327888-03:00 [DBG] Microsoft.AspNetCore.Routing.Matching.DfaMatcher 1 candidate(s) found for the request path '/api/processes'
+2026-01-02T09:32:04.9328536-03:00 [DBG] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware Request matched endpoint 'HTTP: GET /api/processes/ => GetAllProcesses'
+2026-01-02T09:32:04.9329774-03:00 [DBG] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware Static files was skipped as the request already matched an endpoint.
+2026-01-02T09:32:04.9330436-03:00 [INF] Microsoft.AspNetCore.Routing.EndpointMiddleware Executing endpoint 'HTTP: GET /api/processes/ => GetAllProcesses'
+2026-01-02T09:32:04.9354238-03:00 [INF] Microsoft.AspNetCore.Http.Result.OkObjectResult Setting HTTP status code 200.
+2026-01-02T09:32:04.9358512-03:00 [INF] Microsoft.AspNetCore.Http.Result.OkObjectResult Writing value of type 'List`1' as Json.
+2026-01-02T09:32:04.9361415-03:00 [INF] Microsoft.AspNetCore.Routing.EndpointMiddleware Executed endpoint 'HTTP: GET /api/processes/ => GetAllProcesses'
+2026-01-02T09:32:04.9362048-03:00 [DBG] Microsoft.AspNetCore.Server.Kestrel.Connections Connection id "0HNI9VAVKH6US" completed keep alive response.
+2026-01-02T09:32:04.9363137-03:00 [INF] Microsoft.AspNetCore.Hosting.Diagnostics Request finished HTTP/1.1 GET http://localhost:5000/api/processes - 200 null application/json; charset=utf-8 3.6503ms

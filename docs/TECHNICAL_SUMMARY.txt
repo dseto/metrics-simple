@@ -1,0 +1,140 @@
+RESUMO TECNICO - METRICS SIMPLE BACKEND
+========================================
+
+VISAO GERAL
+-----------
+O backend Metrics Simple eh uma aplicacao .NET 8 que implementa um pipeline de transformacao 
+de dados baseado em Spec-Driven Development (SDD). A aplicacao permite configurar, validar 
+e executar transformacoes de dados usando DSL (Domain Specific Language) baseada em Jsonata.
+
+ARQUITETURA
+-----------
+Arquitetura em 3 camadas:
+1. Presentation Layer: API REST (ASP.NET Core) + CLI (System.CommandLine)
+2. Business Logic Layer: Engine Service + Pipeline Orchestrator
+3. Data Access Layer: Repositories (SQLite) + Storage (Local/Blob) + Secrets (JSON)
+
+COMPONENTES PRINCIPAIS
+----------------------
+1. Engine Service
+   - EngineService: Orquestrador principal
+   - JsonataTransformer: Transformacao Jsonata
+   - SchemaValidator: Validacao JSON Schema
+   - CsvGenerator: Geracao de CSV
+
+2. API REST
+   - ProcessRepository: CRUD de Process
+   - ProcessVersionRepository: Gerenciamento de versoes
+   - ConnectorRepository: Gerenciamento de conectores
+   - Endpoints: /api/processes, /api/connectors, /api/preview/transform
+
+3. Runner CLI
+   - Comando run: Executa pipeline completo (8 passos)
+   - Comando validate: Valida DSL e schema
+   - Comando cleanup: Retencao/limpeza de arquivos
+
+4. Pipeline Orchestrator
+   - 8 passos sequenciais:
+     1. Carregar configuracao (SQLite)
+     2. Carregar secrets (JSON)
+     3. Buscar dados (HTTP)
+     4. Transformar (Jsonata)
+     5. Validar schema
+     6. Gerar CSV
+     7. Salvar CSV (Local/Blob)
+     8. Salvar logs
+
+STACK TECNOLOGICO
+-----------------
+- Runtime: .NET 8.0
+- Web: ASP.NET Core Minimal APIs 8.0
+- Database: SQLite 8.0.11
+- Transformacao: Jsonata (NJsonSchema 11.0.2)
+- Validacao: NJsonSchema 11.0.2
+- CLI: System.CommandLine 2.0.0-beta4
+- Logging: Serilog 4.1.0
+- Storage: Azure.Storage.Blobs 12.21.2
+- Testes: xUnit 2.9.2
+- API Docs: Swashbuckle.AspNetCore 6.5.0
+
+PADROES DE DESIGN
+-----------------
+1. Repository Pattern: Abstracao de acesso a dados
+2. Dependency Injection: Injecao de dependencias
+3. Strategy Pattern: Diferentes estrategias de transformacao
+4. Pipeline Pattern: Orquestracao de multiplos passos
+
+TESTES
+------
+- Engine Tests: 3/3 passando
+  * TestHostsCpuTransform
+  * TestSimpleArrayTransform
+  * CSV output validation
+
+- Contract Tests: 8/8 passando
+  * ProcessDto structure validation
+  * ProcessVersionDto structure validation
+  * ConnectorDto structure validation
+  * PreviewTransformRequestDto structure validation
+  * PreviewTransformResponseDto structure validation
+  * DslDto structure validation
+  * SourceRequestDto structure validation
+
+Total: 11/11 testes passando
+
+OBSERVABILIDADE
+----------------
+- Logging estruturado com Serilog
+- Output em JSONL
+- Enriquecimento com executionId para correlacao
+- Logs em arquivo e console
+
+SEGURANCA
+---------
+- Gerenciamento de secrets (JSON)
+- Validacao de entrada (schema JSON)
+- Validacao de DSL Jsonata
+- Tratamento de erros robusto
+
+PERFORMANCE
+-----------
+- SQLite em-memory para testes
+- Lazy loading de configuracoes
+- Streaming de CSV para grandes datasets
+- Connection pooling para HTTP
+
+ESCALABILIDADE
+---------------
+- Suporte a Azure Blob Storage
+- Logging assincrono
+- Processamento paralelo de multiplas execucoes
+
+COMO EXECUTAR
+-------------
+Build:
+  dotnet build -c Release
+
+Testes:
+  dotnet test -c Release
+
+API:
+  dotnet run --project src/Api
+
+Runner:
+  dotnet run --project src/Runner -- run --processId myprocess --version 1.0
+
+PROXIMOS PASSOS
+---------------
+1. Autenticacao: JWT/OAuth
+2. Autorizacao: RBAC
+3. Caching: Redis
+4. Monitoramento: Application Insights
+5. CI/CD: GitHub Actions
+6. Containerizacao: Docker/Kubernetes
+7. Documentacao: Swagger completo
+
+STATUS FINAL
+------------
+✓ PRONTO PARA PRODUCAO
+
+Relatorio gerado em 01 de Janeiro de 2026
