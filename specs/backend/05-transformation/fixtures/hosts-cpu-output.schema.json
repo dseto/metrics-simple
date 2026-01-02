@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "timestamp",
+      "hostName",
+      "cpuUsagePercent"
+    ],
+    "properties": {
+      "timestamp": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "hostName": {
+        "type": "string",
+        "minLength": 1
+      },
+      "cpuUsagePercent": {
+        "type": "number",
+        "minimum": 0
+      }
+    }
+  }
+}

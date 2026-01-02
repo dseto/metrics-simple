@@ -1,0 +1,35 @@
+{
+  "meta": {
+    "generated": "2026-01-01",
+    "scheme": "dark"
+  },
+  "material3Roles": {
+    "primary": "#0066CC",
+    "onPrimary": "#FFFFFF",
+    "primaryContainer": "#003DA5",
+    "onPrimaryContainer": "#FFFFFF",
+    "secondary": "#AAAAAA",
+    "onSecondary": "#1F1F1F",
+    "secondaryContainer": "#333333",
+    "onSecondaryContainer": "#FFFFFF",
+    "tertiary": "#999999",
+    "onTertiary": "#1F1F1F",
+    "tertiaryContainer": "#242424",
+    "onTertiaryContainer": "#E8E8E8",
+    "error": "#E81828",
+    "onError": "#FFFFFF",
+    "errorContainer": "#333333",
+    "onErrorContainer": "#FFF3CD",
+    "background": "#1F1F1F",
+    "onBackground": "#E8E8E8",
+    "surface": "#242424",
+    "onSurface": "#E8E8E8",
+    "surfaceVariant": "#333333",
+    "onSurfaceVariant": "#D0D0D0",
+    "outline": "#757575",
+    "outlineVariant": "#333333",
+    "inverseSurface": "#E8E8E8",
+    "inverseOnSurface": "#1A1A1A",
+    "inversePrimary": "#003DA5"
+  }
+}

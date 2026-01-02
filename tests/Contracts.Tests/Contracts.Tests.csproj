@@ -10,13 +10,8 @@
     <PackageReference Include="YamlDotNet" Version="15.3.0" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\specs\03-interfaces\openapi-config-api.yaml" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\specs\02-domain\schemas\connector.schema.json" Link="schemas\connector.schema.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\specs\02-domain\schemas\process.schema.json" Link="schemas\process.schema.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\specs\02-domain\schemas\processVersion.schema.json" Link="schemas\processVersion.schema.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\specs\02-domain\schemas\sourceRequest.schema.json" Link="schemas\sourceRequest.schema.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\specs\02-domain\schemas\secretConfig.schema.json" Link="schemas\secretConfig.schema.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\specs\02-domain\schemas\schedule.schema.json" Link="schemas\schedule.schema.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\shared\openapi\config-api.yaml" Link="openapi\config-api.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\specs\shared\domain\schemas\*.schema.json" Link="schemas\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Api\Api.csproj" />

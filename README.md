@@ -1,12 +1,23 @@
-# Metrics Simple (Spec-Driven)
+# Metrics Simple — Spec Deck (v1.1.0)
 
-Gerado em 2025-12-31.
+Este repositório contém um **spec deck** completo para desenvolver a aplicação **Metrics Simple** usando metodologia **Spec Driven Design**.
 
-## Conteúdo
-- `specs/`: Spec Pack (fonte da verdade)
-- `src/`: projetos .NET (skeleton)
-- `tests/`: testes unitários (skeleton)
-- `.github/`: governança + custom agent (Copilot)
+## Estrutura
+- `specs/shared/` — contratos canônicos (OpenAPI + JSON Schemas + exemplos)
+- `specs/backend/` — comportamento e requisitos do backend/runner
+- `specs/frontend/` — UI (Angular + Material 3): rotas, estados, componentes e validações
 
-## Próximo passo
-Abra a solução `Metrics.Simple.SpecDriven.sln` no VS Code e siga `specs/00-vision/build-and-test.md`.
+## Regras de escopo (v1.x)
+- Implementação **sincrona** (sem filas e sem Azure Functions).
+- Persistência local em SQLite.
+- Exportação de CSV para Local File System e/ou Azure Blob Storage (opcional).
+- IA (LLM) **apenas design-time** (sugestão de DSL/Schema), com validação no backend.
+
+## Fonte da verdade
+- OpenAPI: `specs/shared/openapi/config-api.yaml`
+- Schemas: `specs/shared/domain/schemas/*.schema.json`
+
+## Como usar
+1. Comece por `SCOPE.md` e `TECH_STACK.md`.
+2. Navegue pelos decks via `specs/spec-index.md`.
+3. Implemente primeiro os contratos do deck `shared` (API + schemas).

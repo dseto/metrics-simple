@@ -1,0 +1,19 @@
+{
+  "id": "proc-metrics-hourly",
+  "name": "Export metrics hourly",
+  "description": "Exports metrics to CSV",
+  "status": "Draft",
+  "connectorId": "dynatrace-prod",
+  "tags": [
+    "metrics",
+    "hourly"
+  ],
+  "outputDestinations": [
+    {
+      "type": "LocalFileSystem",
+      "local": {
+        "basePath": "output/csv"
+      }
+    }
+  ]
+}

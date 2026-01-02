@@ -1,0 +1,8 @@
+{
+  "id": "dynatrace-prod",
+  "name": "Dynatrace - PROD",
+  "baseUrl": "https://dynatrace.example/api/v2",
+  "authRef": "dynatrace-prod-token",
+  "timeoutSeconds": 60,
+  "enabled": true
+}

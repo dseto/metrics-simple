@@ -1,2 +1,0 @@
-# Destinos
-LocalFileSystem / AzureBlobStorage / Both

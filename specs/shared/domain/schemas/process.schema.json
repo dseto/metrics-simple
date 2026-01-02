@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "process.schema.json",
+  "title": "Process",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "name",
+    "status",
+    "connectorId",
+    "outputDestinations"
+  ],
+  "properties": {
+    "id": {
+      "$ref": "id.schema.json"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "description": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 2000
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Draft",
+        "Active",
+        "Disabled"
+      ],
+      "default": "Draft"
+    },
+    "connectorId": {
+      "$ref": "id.schema.json"
+    },
+    "tags": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 50
+      },
+      "maxItems": 20
+    },
+    "outputDestinations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "items": {
+        "$ref": "outputDestination.schema.json"
+      }
+    },
+    "createdAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    }
+  },
+  "examples": [
+    {
+      "id": "proc-metrics-hourly",
+      "name": "Export metrics hourly",
+      "description": "Exports metrics to CSV",
+      "status": "Draft",
+      "connectorId": "dynatrace-prod",
+      "tags": [
+        "metrics",
+        "hourly"
+      ],
+      "outputDestinations": [
+        {
+          "type": "LocalFileSystem",
+          "local": {
+            "basePath": "output/csv"
+          }
+        }
+      ]
+    }
+  ]
+}

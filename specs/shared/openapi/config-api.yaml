@@ -1,0 +1,374 @@
+openapi: 3.0.3
+info:
+  title: MetricsSimple Config API
+  version: 1.1.0
+  description: 'API de configuração para Connectors, Processes e Versions + endpoint
+    de Preview/Transform.
+
+    **Fonte da verdade** de modelos: `specs/shared/domain/schemas/*.schema.json`.
+
+    '
+servers:
+- url: http://localhost:5000
+  description: Local dev
+tags:
+- name: Connectors
+- name: Processes
+- name: Preview
+- name: AI
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+  /api/connectors:
+    get:
+      tags:
+      - Connectors
+      summary: List connectors
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: ../domain/schemas/connector.schema.json
+    post:
+      tags:
+      - Connectors
+      summary: Create connector
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ../domain/schemas/connector.schema.json
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/connector.schema.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/connectors/{connectorId}:
+    parameters:
+    - in: path
+      name: connectorId
+      required: true
+      schema:
+        $ref: ../domain/schemas/id.schema.json
+    get:
+      tags:
+      - Connectors
+      summary: Get connector
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/connector.schema.json
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+      - Connectors
+      summary: Update connector
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ../domain/schemas/connector.schema.json
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/connector.schema.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Connectors
+      summary: Delete connector
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/processes:
+    get:
+      tags:
+      - Processes
+      summary: List processes
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: ../domain/schemas/process.schema.json
+    post:
+      tags:
+      - Processes
+      summary: Create process
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ../domain/schemas/process.schema.json
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/process.schema.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/processes/{processId}:
+    parameters:
+    - in: path
+      name: processId
+      required: true
+      schema:
+        $ref: ../domain/schemas/id.schema.json
+    get:
+      tags:
+      - Processes
+      summary: Get process
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/process.schema.json
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+      - Processes
+      summary: Update process
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ../domain/schemas/process.schema.json
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/process.schema.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Processes
+      summary: Delete process
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/processes/{processId}/versions:
+    parameters:
+    - in: path
+      name: processId
+      required: true
+      schema:
+        $ref: ../domain/schemas/id.schema.json
+    get:
+      tags:
+      - Processes
+      summary: List versions for a process
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: ../domain/schemas/processVersion.schema.json
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags:
+      - Processes
+      summary: Create version for process
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ../domain/schemas/processVersion.schema.json
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/processVersion.schema.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/processes/{processId}/versions/{version}:
+    parameters:
+    - in: path
+      name: processId
+      required: true
+      schema:
+        $ref: ../domain/schemas/id.schema.json
+    - in: path
+      name: version
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    get:
+      tags:
+      - Processes
+      summary: Get process version
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/processVersion.schema.json
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+      - Processes
+      summary: Update process version
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ../domain/schemas/processVersion.schema.json
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/processVersion.schema.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - Processes
+      summary: Delete process version
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/preview/transform:
+    post:
+      tags:
+      - Preview
+      summary: Preview transform (DSL + sample input + schema)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ../domain/schemas/previewRequest.schema.json
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/previewResult.schema.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /api/ai/dsl/generate:
+    post:
+      tags:
+      - AI
+      summary: Generate DSL + Output Schema using LLM (design-time)
+      description: 'Gera **sugestão** de DSL e JSON Schema a partir de linguagem natural
+        + JSON de exemplo.
+
+        A saída **sempre** deve ser validada pelo backend (parser + JSON Schema) antes
+        de ser retornada.
+
+        '
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ../domain/schemas/dslGenerateRequest.schema.json
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/dslGenerateResult.schema.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '503':
+          description: AI provider unavailable / disabled
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/aiError.schema.json
+components:
+  schemas:
+    ApiError:
+      $ref: ../domain/schemas/apiError.schema.json
+    AiError:
+      $ref: ../domain/schemas/aiError.schema.json
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'

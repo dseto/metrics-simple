@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "connector.schema.json",
+  "title": "Connector",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "name",
+    "baseUrl",
+    "authRef",
+    "timeoutSeconds"
+  ],
+  "properties": {
+    "id": {
+      "$ref": "id.schema.json"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "baseUrl": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 2048,
+      "format": "uri"
+    },
+    "authRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Reference to an auth secret in appsettings/config (do not store secrets in SQLite)."
+    },
+    "timeoutSeconds": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 300,
+      "default": 60
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "createdAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    }
+  },
+  "examples": [
+    {
+      "id": "dynatrace-prod",
+      "name": "Dynatrace - PROD",
+      "baseUrl": "https://dynatrace.example/api/v2",
+      "authRef": "dynatrace-prod-token",
+      "timeoutSeconds": 60,
+      "enabled": true
+    }
+  ]
+}

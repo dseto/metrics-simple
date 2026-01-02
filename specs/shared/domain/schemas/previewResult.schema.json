@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "previewResult.schema.json",
+  "title": "PreviewResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "isValid",
+    "errors",
+    "output"
+  ],
+  "properties": {
+    "isValid": {
+      "type": "boolean"
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "message"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 256
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 80
+          }
+        }
+      },
+      "maxItems": 200
+    },
+    "output": {
+      "type": [
+        "object",
+        "array",
+        "null"
+      ],
+      "description": "Preview output (null when invalid)."
+    },
+    "previewCsv": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 1000000
+    }
+  },
+  "examples": [
+    {
+      "isValid": true,
+      "errors": [],
+      "output": [
+        {
+          "timestamp": "2026-01-01T00:00:00Z",
+          "hostName": "srv01",
+          "cpuUsagePercent": 73.0
+        }
+      ],
+      "previewCsv": "timestamp,hostName,cpuUsagePercent\n2026-01-01T00:00:00Z,srv01,73.0\n"
+    }
+  ]
+}

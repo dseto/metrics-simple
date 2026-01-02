@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "previewRequest.schema.json",
+  "title": "PreviewRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sampleInput",
+    "dsl",
+    "outputSchema"
+  ],
+  "properties": {
+    "sampleInput": {
+      "type": [
+        "object",
+        "array"
+      ],
+      "description": "JSON sample from source API."
+    },
+    "dsl": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "text"
+      ],
+      "properties": {
+        "profile": {
+          "type": "string",
+          "enum": [
+            "jsonata",
+            "jmespath",
+            "custom"
+          ],
+          "default": "jsonata"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20000
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "minProperties": 1
+    }
+  },
+  "examples": [
+    {
+      "sampleInput": {
+        "result": [
+          {
+            "timestamp": "2026-01-01T00:00:00Z",
+            "host": "srv01",
+            "cpu": 0.73
+          }
+        ]
+      },
+      "dsl": {
+        "profile": "jsonata",
+        "text": "$.result.{timestamp: timestamp, hostName: host, cpuUsagePercent: cpu*100}"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  ]
+}

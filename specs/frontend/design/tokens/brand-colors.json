@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "generated": "2026-01-01",
+    "source": "Branding guideline (dc3e16a6.md)",
+    "hexesDetected": [
+      "#001A4D",
+      "#002070",
+      "#003DA5",
+      "#0066CC",
+      "#00B050",
+      "#1A1A1A",
+      "#1F1F1F",
+      "#242424",
+      "#333333",
+      "#6B3B9E",
+      "#757575",
+      "#856404",
+      "#999999",
+      "#AAAAAA",
+      "#CCCCCC",
+      "#D0D0D0",
+      "#E0E0E0",
+      "#E81828",
+      "#E8E8E8",
+      "#F5F5F5",
+      "#FF9800",
+      "#FFC107",
+      "#FFF3CD",
+      "#FFFFFF"
+    ]
+  },
+  "colors": {
+    "zrhBluePrimary": "#003DA5",
+    "zrhBlueDark": "#001A4D",
+    "zrhBlueNavy": "#002070",
+    "zrhBlueLight": "#0066CC",
+    "success": "#00B050",
+    "warning": "#FFC107",
+    "warningAlt": "#FF9800",
+    "danger": "#E81828",
+    "textPrimary": "#1A1A1A",
+    "textSecondary": "#333333",
+    "surface": "#FFFFFF",
+    "background": "#F5F5F5",
+    "surfaceVariant": "#E8E8E8",
+    "outline": "#CCCCCC",
+    "outlineVariant": "#D0D0D0",
+    "muted": "#757575"
+  }
+}

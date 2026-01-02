@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "outputDestination.schema.json",
+  "title": "OutputDestination",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "type"
+  ],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "LocalFileSystem",
+        "AzureBlobStorage"
+      ]
+    },
+    "local": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "basePath"
+      ],
+      "properties": {
+        "basePath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
+    },
+    "blob": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "connectionStringRef",
+        "container"
+      ],
+      "properties": {
+        "connectionStringRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "container": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 63
+        },
+        "pathPrefix": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256,
+          "description": "Optional prefix within the container (must not start with '/' and must not contain '..').",
+          "pattern": "^(?!/)(?!.*\\.\\.).*$"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "LocalFileSystem"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "required": [
+          "local"
+        ],
+        "properties": {
+          "blob": {
+            "const": null
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "AzureBlobStorage"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "required": [
+          "blob"
+        ],
+        "properties": {
+          "local": {
+            "const": null
+          }
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "type": "LocalFileSystem",
+      "local": {
+        "basePath": "output/csv"
+      }
+    },
+    {
+      "type": "AzureBlobStorage",
+      "blob": {
+        "connectionStringRef": "blobStorage",
+        "container": "metrics-csv",
+        "pathPrefix": "exports/"
+      }
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aiError.schema.json",
+  "title": "AiError",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "code",
+    "message",
+    "correlationId"
+  ],
+  "properties": {
+    "code": {
+      "type": "string",
+      "enum": [
+        "AI_DISABLED",
+        "AI_PROVIDER_UNAVAILABLE",
+        "AI_TIMEOUT",
+        "AI_OUTPUT_INVALID",
+        "AI_RATE_LIMITED"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "details": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "message"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 256
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        }
+      },
+      "maxItems": 50
+    },
+    "correlationId": {
+      "type": "string",
+      "minLength": 6,
+      "maxLength": 128
+    },
+    "executionId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 6,
+      "maxLength": 128
+    }
+  }
+}
