@@ -1,5 +1,61 @@
 # Decisões Arquiteturais e de Implementação
 
+## Versionamento de API - /api/v1
+
+**Data:** 2026-01-02  
+**Status:** ✅ COMPLETADA
+
+### Contexto
+
+Frontend estava tentando acessar endpoints em `/api/v1/processes`, mas backend estava expondo em `/api/processes`, causando erro 404.
+
+### Decisão
+
+**Implementação de versionamento de API seguindo melhores práticas:**
+- Todos os endpoints movidos para `/api/v1/` usando MapGroup no ASP.NET Core
+- Endpoint `/api/health` mantido sem versionamento (health check global)
+- OpenAPI spec atualizado para refletir o versionamento no baseUrl
+
+### Mudanças Implementadas
+
+| Arquivo | Mudança |
+|---------|---------|
+| `src/Api/Program.cs` | + `var v1 = app.MapGroup("/api/v1")` para versionamento de todos os endpoints |
+| `specs/shared/openapi/config-api.yaml` | + `url: http://localhost:8080/api/v1` no servers, removido `/api` dos paths |
+
+### URLs Atualizadas
+
+**Antes:**
+- `/api/processes` → 404 (frontend tentava `/api/v1/processes`)
+
+**Depois:**
+- `/api/v1/processes` → 200 ✓
+- `/api/v1/connectors` → 200 ✓
+- `/api/v1/preview/transform` → 200 ✓
+- `/api/v1/ai/dsl/generate` → 200 ✓
+- `/api/health` → 200 ✓ (sem versionamento)
+
+### Validação
+
+```bash
+curl.exe -i http://localhost:8080/api/v1/processes -H "Origin: http://localhost:4200"
+# HTTP/1.1 200 OK
+# Access-Control-Allow-Origin: http://localhost:4200
+```
+
+### CORS Habilitado
+
+**Data:** 2026-01-02  
+**Status:** ✅ COMPLETADA
+
+**Configuração de CORS para desenvolvimento:**
+- AddCors com política "AllowFrontend"
+- Origins permitidas via variável de ambiente `CORS_ORIGINS` (default: `http://localhost:4200`)
+- AllowAnyMethod, AllowAnyHeader, AllowCredentials
+- Middleware `UseCors("AllowFrontend")` adicionado ao pipeline
+
+---
+
 ## Etapa 8: Configuração de AI em appsettings.json
 
 **Data:** 2026-01-02  

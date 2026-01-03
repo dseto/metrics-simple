@@ -9,8 +9,8 @@ info:
 
     '
 servers:
-- url: http://localhost:5000
-  description: Local dev
+- url: http://localhost:8080/api/v1
+  description: Local dev (API v1)
 tags:
 - name: Connectors
 - name: Processes
@@ -19,11 +19,12 @@ tags:
 paths:
   /health:
     get:
-      summary: Health check
+      summary: Health check (sem versionamento)
+      description: Endpoint de saúde global, não versionado
       responses:
         '200':
           description: OK
-  /api/connectors:
+  /connectors:
     get:
       tags:
       - Connectors
@@ -58,7 +59,7 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '409':
           $ref: '#/components/responses/Conflict'
-  /api/connectors/{connectorId}:
+  /connectors/{connectorId}:
     parameters:
     - in: path
       name: connectorId
@@ -108,7 +109,7 @@ paths:
           description: Deleted
         '404':
           $ref: '#/components/responses/NotFound'
-  /api/processes:
+  /processes:
     get:
       tags:
       - Processes
@@ -143,7 +144,7 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '409':
           $ref: '#/components/responses/Conflict'
-  /api/processes/{processId}:
+  /processes/{processId}:
     parameters:
     - in: path
       name: processId
@@ -193,7 +194,7 @@ paths:
           description: Deleted
         '404':
           $ref: '#/components/responses/NotFound'
-  /api/processes/{processId}/versions:
+  /processes/{processId}/versions:
     parameters:
     - in: path
       name: processId
@@ -238,7 +239,7 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
-  /api/processes/{processId}/versions/{version}:
+  /processes/{processId}/versions/{version}:
     parameters:
     - in: path
       name: processId
@@ -294,7 +295,7 @@ paths:
           description: Deleted
         '404':
           $ref: '#/components/responses/NotFound'
-  /api/preview/transform:
+  /preview/transform:
     post:
       tags:
       - Preview
@@ -314,7 +315,7 @@ paths:
                 $ref: ../domain/schemas/previewResult.schema.json
         '400':
           $ref: '#/components/responses/BadRequest'
-  /api/ai/dsl/generate:
+  /ai/dsl/generate:
     post:
       tags:
       - AI

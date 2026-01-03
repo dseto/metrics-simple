@@ -21,6 +21,21 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// Configure CORS for frontend development (localhost:4200)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", builder =>
+    {
+        var corsOrigins = Environment.GetEnvironmentVariable("CORS_ORIGINS")?.Split(';') ?? new[] { "http://localhost:4200", "https://localhost:4200" };
+        
+        builder
+            .WithOrigins(corsOrigins)
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
+});
+
 // Get configuration - METRICS_SQLITE_PATH env var takes precedence (required for integration tests)
 var dbPath = Environment.GetEnvironmentVariable("METRICS_SQLITE_PATH") 
     ?? builder.Configuration["Database:Path"] 
@@ -110,12 +125,18 @@ if (!app.Environment.IsEnvironment("Testing"))
     app.UseHttpsRedirection();
 }
 
-// Health check
+// Use CORS
+app.UseCors("AllowFrontend");
+
+// Health check (sem versionamento)
 app.MapGet("/api/health", GetHealth)
     .WithName("Health");
 
+// API v1 Group
+var v1 = app.MapGroup("/api/v1");
+
 // Process endpoints
-var processGroup = app.MapGroup("/api/processes")
+var processGroup = v1.MapGroup("/processes")
     .WithTags("Processes");
 
 processGroup.MapGet("/", GetAllProcesses)
@@ -134,7 +155,7 @@ processGroup.MapDelete("/{id}", DeleteProcess)
     .WithName("DeleteProcess");
 
 // ProcessVersion endpoints
-var versionGroup = app.MapGroup("/api/processes/{processId}/versions")
+var versionGroup = v1.MapGroup("/processes/{processId}/versions")
     .WithTags("ProcessVersions");
 
 versionGroup.MapPost("/", CreateProcessVersion)
@@ -147,7 +168,7 @@ versionGroup.MapPut("/{version}", UpdateProcessVersion)
     .WithName("UpdateProcessVersion");
 
 // Connector endpoints
-var connectorGroup = app.MapGroup("/api/connectors")
+var connectorGroup = v1.MapGroup("/connectors")
     .WithTags("Connectors");
 
 connectorGroup.MapGet("/", GetAllConnectors)
@@ -157,12 +178,12 @@ connectorGroup.MapPost("/", CreateConnector)
     .WithName("CreateConnector");
 
 // Preview Transform endpoint
-app.MapPost("/api/preview/transform", PreviewTransform)
+v1.MapPost("/preview/transform", PreviewTransform)
     .WithName("PreviewTransform")
     .WithTags("Preview");
 
 // AI DSL Generate endpoint
-app.MapPost("/api/ai/dsl/generate", GenerateDsl)
+v1.MapPost("/ai/dsl/generate", GenerateDsl)
     .WithName("GenerateDsl")
     .WithTags("AI");
 
