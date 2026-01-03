@@ -1,9 +1,92 @@
 # Decisões Arquiteturais e de Implementação
 
+## Versionamento de API - /api/v1 (ATUALIZADO)
+
+**Data:** 2026-01-03  
+**Status:** ✅ COMPLETADA
+
+### Contexto
+
+Frontend estava tentando acessar endpoints em `/api/v1/processes`, mas backend estava expondo em `/api/processes`, causando erro 404. Alguns endpoints (preview, AI) foram inicialmente corrigidos mas ainda estavam sem versionamento adequado.
+
+### Decisão
+
+**Implementação completa de versionamento de API seguindo melhores práticas OpenAPI:**
+- TODOS os endpoints de negócio movidos para `/api/v1/` usando MapGroup no ASP.NET Core
+- Exceções sem versionamento: `/api/health` (health check global) e `/api/auth/*` (autenticação)
+- OpenAPI spec atualizado para refletir o versionamento no baseUrl
+- Specs shared e agent instructions atualizadas para garantir compliance
+
+### Mudanças Implementadas
+
+| Arquivo | Mudança |
+|---------|---------|
+| `src/Api/Program.cs` | + `var v1 = app.MapGroup("/api/v1")` - TODOS os grupos de endpoints agora usam v1 |
+| `specs/shared/openapi/config-api.yaml` | + `url: http://localhost:8080/api/v1` no servers + documentação de exceções |
+| `specs/shared/README.md` | + Seção "Versionamento de API (CRITICAL)" com exemplos e regras |
+| `.github/agents/spec-driven-dockerizer.agent.md` | + Seção "API VERSIONING (CRITICAL)" com enforcement rules |
+
+### Estrutura Final de Endpoints
+
+**Versionados (com `/api/v1`):**
+- ✅ `/api/v1/processes` → CRUD de processos
+- ✅ `/api/v1/processes/{processId}/versions` → Versões de processo
+- ✅ `/api/v1/connectors` → Conectores
+- ✅ `/api/v1/preview/transform` → Preview de transformação
+- ✅ `/api/v1/ai/dsl/generate` → Geração de DSL via LLM
+
+**Sem versionamento (exceções):**
+- ✅ `/api/health` → Health check global
+- ✅ `/api/auth/token` → Login (LocalJwt mode)
+- ✅ `/api/auth/users` → Gestão de usuários (Admin)
+
+### Location Headers Corrigidos
+
+Todos os `Results.Created()` agora usam `/api/v1`:
+- `CreateProcess` → `/api/v1/processes/{id}`
+- `CreateProcessVersion` → `/api/v1/processes/{processId}/versions/{version}`
+- `CreateConnector` → `/api/v1/connectors/{id}`
+
+### Validação
+
+```bash
+# Endpoints versionados com CORS
+curl.exe -i http://localhost:8080/api/v1/processes -H "Origin: http://localhost:4200"
+# HTTP/1.1 401 (auth required) + Access-Control-Allow-Origin: http://localhost:4200 ✓
+
+# Health check sem versioning
+curl.exe -i http://localhost:8080/api/health
+# HTTP/1.1 200 OK + {"status":"ok"} ✓
+
+# Preflight CORS
+curl.exe -i -X OPTIONS http://localhost:8080/api/v1/preview/transform -H "Origin: http://localhost:4200"
+# HTTP/1.1 204 No Content + Access-Control-Allow-Origin ✓
+```
+
+### Integração Frontend/Backend
+
+**Frontend deve configurar:**
+```typescript
+const apiClient = axios.create({
+  baseURL: 'http://localhost:8080/api/v1',
+  withCredentials: true
+});
+
+// Requests:
+apiClient.get('/processes'); // → http://localhost:8080/api/v1/processes
+```
+
+**OpenAPI Spec:**
+- Base URL: `http://localhost:8080/api/v1`
+- Paths no spec: `/processes`, `/connectors` (sem `/api/v1`)
+- Resultado final: `{baseURL}{path}` = `http://localhost:8080/api/v1/processes`
+
+---
+
 ## Versionamento de API - /api/v1
 
 **Data:** 2026-01-02  
-**Status:** ✅ COMPLETADA
+**Status:** ⚠️ PARCIAL - Atualizado em 2026-01-03
 
 ### Contexto
 

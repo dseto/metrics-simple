@@ -2,20 +2,593 @@ openapi: 3.0.3
 info:
   title: MetricsSimple Config API
   version: 1.1.0
-  description: 'API de configuração para Connectors, Processes e Versions + endpoint
-    de Preview/Transform.
+  description: |
+    API de configuração para Metrics Simple - Spec-Driven.
+    
+    **Versioning Strategy:**
+    - Base URL: `http://localhost:8080/api/v1` (todos os endpoints de negócio)
+    - Exceções sem versioning: `/api/health`, `/api/auth/*`
+    
+    **Authentication:**
+    - Mode: LocalJwt (development)
+    - Token endpoint: `POST /api/auth/token`
+    - Bearer token required para endpoints protegidos
+    - Policies: Reader (read-only), Admin (full access)
+    
+    **Error Handling:**
+    - All errors follow `apiError.schema.json` format
+    - AI-specific errors use `aiError.schema.json`
+    - Correlation ID in every response (`X-Correlation-Id` header)
+    
+    **CORS:**
+    - Frontend origin: http://localhost:4200
+    - Credentials: true
+    
+    **Source of Truth:**
+    - Schemas: `specs/shared/domain/schemas/*.schema.json`
+    - This spec: `specs/shared/openapi/config-api.yaml`
+    - Backend implementation: `src/Api/Program.cs`
 
-    **Fonte da verdade** de modelos: `specs/shared/domain/schemas/*.schema.json`.
-
-    '
 servers:
 - url: http://localhost:8080/api/v1
-  description: Local dev (API v1)
+  description: Local development (API v1)
+- url: https://api.metrics-simple.example.com/api/v1
+  description: Production (API v1)
+
 tags:
-- name: Connectors
+- name: Health
+  description: System health & monitoring
+- name: Authentication
+  description: User login and token management
 - name: Processes
+  description: Process CRUD operations
+- name: Connectors
+  description: Connector CRUD operations
 - name: Preview
+  description: Design-time transformation preview
 - name: AI
+  description: AI-assisted DSL generation (LLM)
+
+security:
+- bearerAuth: []
+
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      tags:
+      - Health
+      summary: Health check endpoint
+      description: |
+        Global health check endpoint - no authentication required.
+        
+        **Note:** This endpoint does NOT use API versioning (/api/health, not /api/v1/health).
+      security: []
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /connectors:
+    get:
+      operationId: listConnectors
+      tags:
+      - Connectors
+      summary: List all connectors
+      description: Returns all available connectors. Requires Reader policy.
+      parameters:
+      - name: X-Correlation-Id
+        in: header
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: ../domain/schemas/connector.schema.json
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      operationId: createConnector
+      tags:
+      - Connectors
+      summary: Create a new connector
+      description: Creates a new connector. Requires Admin policy.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ../domain/schemas/connector.schema.json
+      responses:
+        '201':
+          description: Connector created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URI of created connector
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/connector.schema.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /connectors/{connectorId}:
+    parameters:
+    - in: path
+      name: connectorId
+      required: true
+      description: Connector ID
+      schema:
+        $ref: ../domain/schemas/id.schema.json
+    get:
+      operationId: getConnector
+      tags:
+      - Connectors
+      summary: Get connector by ID
+      description: Retrieves a specific connector. Requires Reader policy.
+      responses:
+        '200':
+          description: Connector found
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/connector.schema.json
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateConnector
+      tags:
+      - Connectors
+      summary: Update connector
+      description: Updates an existing connector. Requires Admin policy.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ../domain/schemas/connector.schema.json
+      responses:
+        '200':
+          description: Connector updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/connector.schema.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteConnector
+      tags:
+      - Connectors
+      summary: Delete connector
+      description: Deletes a connector. Requires Admin policy.
+      responses:
+        '204':
+          description: Connector deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /processes:
+    get:
+      operationId: listProcesses
+      tags:
+      - Processes
+      summary: List all processes
+      description: Returns all processes. Requires Reader policy.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: ../domain/schemas/process.schema.json
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      operationId: createProcess
+      tags:
+      - Processes
+      summary: Create a new process
+      description: Creates a new process. Requires Admin policy.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ../domain/schemas/process.schema.json
+      responses:
+        '201':
+          description: Process created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URI of created process
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/process.schema.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /processes/{processId}:
+    parameters:
+    - in: path
+      name: processId
+      required: true
+      description: Process ID
+      schema:
+        $ref: ../domain/schemas/id.schema.json
+    get:
+      operationId: getProcess
+      tags:
+      - Processes
+      summary: Get process by ID
+      description: Retrieves a specific process. Requires Reader policy.
+      responses:
+        '200':
+          description: Process found
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/process.schema.json
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateProcess
+      tags:
+      - Processes
+      summary: Update process
+      description: Updates an existing process. Requires Admin policy.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ../domain/schemas/process.schema.json
+      responses:
+        '200':
+          description: Process updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/process.schema.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteProcess
+      tags:
+      - Processes
+      summary: Delete process
+      description: Deletes a process. Requires Admin policy.
+      responses:
+        '204':
+          description: Process deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /processes/{processId}/versions:
+    parameters:
+    - in: path
+      name: processId
+      required: true
+      description: Process ID
+      schema:
+        $ref: ../domain/schemas/id.schema.json
+    get:
+      operationId: listProcessVersions
+      tags:
+      - Processes
+      summary: List versions for a process
+      description: Returns all versions of a specific process. Requires Reader policy.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: ../domain/schemas/processVersion.schema.json
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: createProcessVersion
+      tags:
+      - Processes
+      summary: Create version for process
+      description: Creates a new version of a process. Requires Admin policy.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ../domain/schemas/processVersion.schema.json
+      responses:
+        '201':
+          description: Version created successfully
+          headers:
+            Location:
+              schema:
+                type: string
+              description: URI of created version
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/processVersion.schema.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /processes/{processId}/versions/{version}:
+    parameters:
+    - in: path
+      name: processId
+      required: true
+      description: Process ID
+      schema:
+        $ref: ../domain/schemas/id.schema.json
+    - in: path
+      name: version
+      required: true
+      description: Version number (integer >= 1)
+      schema:
+        type: integer
+        minimum: 1
+    get:
+      operationId: getProcessVersion
+      tags:
+      - Processes
+      summary: Get specific process version
+      description: Retrieves a specific version of a process. Requires Reader policy.
+      responses:
+        '200':
+          description: Process version found
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/processVersion.schema.json
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateProcessVersion
+      tags:
+      - Processes
+      summary: Update process version
+      description: Updates a process version. Requires Admin policy.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ../domain/schemas/processVersion.schema.json
+      responses:
+        '200':
+          description: Process version updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/processVersion.schema.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteProcessVersion
+      tags:
+      - Processes
+      summary: Delete process version
+      description: Deletes a process version. Requires Admin policy.
+      responses:
+        '204':
+          description: Process version deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /preview/transform:
+    post:
+      operationId: previewTransform
+      tags:
+      - Preview
+      summary: Preview transformation output
+      description: |
+        Performs a preview of transformation using provided DSL and sample input.
+        
+        **Design-time operation:** No actual data fetch, only validation.
+        
+        Requires Reader policy.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ../domain/schemas/previewRequest.schema.json
+      responses:
+        '200':
+          description: Transformation preview successful
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/previewResult.schema.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /ai/dsl/generate:
+    post:
+      operationId: generateDsl
+      tags:
+      - AI
+      summary: Generate DSL and Output Schema using LLM
+      description: |
+        AI-assisted generation of DSL (Domain Specific Language) and JSON Schema
+        from natural language description and sample JSON input.
+        
+        **Important:**
+        - Output is always validated by backend before returning
+        - Returns structured suggestions only
+        - Requires Reader policy
+        - AI provider must be enabled in configuration
+        
+        **Error Codes:**
+        - 400: Invalid request (validation failed)
+        - 401: Authentication required
+        - 502: AI provider error or invalid output
+        - 503: AI provider unavailable / disabled
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ../domain/schemas/dslGenerateRequest.schema.json
+      responses:
+        '200':
+          description: DSL and schema generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: ../domain/schemas/dslGenerateResult.schema.json
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          description: Bad Gateway - AI provider error or invalid output
+          content:
+            application/json:
+              schema:
+                $ref: '../domain/schemas/aiError.schema.json'
+        '503':
+          description: Service Unavailable - AI provider unavailable or disabled
+          content:
+            application/json:
+              schema:
+                $ref: '../domain/schemas/aiError.schema.json'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Bearer token. Obtain via POST /api/auth/token (LocalJwt mode)
+  
+  schemas:
+    ApiError:
+      $ref: ../domain/schemas/apiError.schema.json
+    AiError:
+      $ref: ../domain/schemas/aiError.schema.json
+  
+  responses:
+    BadRequest:
+      description: Bad request - validation failed
+      headers:
+        X-Correlation-Id:
+          schema:
+            type: string
+          description: Unique request correlation ID for debugging
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    
+    Unauthorized:
+      description: Authentication required or token invalid
+      headers:
+        X-Correlation-Id:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                example: AUTH_UNAUTHORIZED
+              message:
+                type: string
+                example: Authentication required
+              correlationId:
+                type: string
+                format: uuid
+    
+    NotFound:
+      description: Resource not found
+      headers:
+        X-Correlation-Id:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    
+    Conflict:
+      description: Conflict - resource already exists or constraint violation
+      headers:
+        X-Correlation-Id:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
 paths:
   /health:
     get:
@@ -349,26 +922,70 @@ paths:
               schema:
                 $ref: ../domain/schemas/aiError.schema.json
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Bearer token. Obtain via POST /api/auth/token (LocalJwt mode)
+  
   schemas:
     ApiError:
       $ref: ../domain/schemas/apiError.schema.json
     AiError:
       $ref: ../domain/schemas/aiError.schema.json
+  
   responses:
     BadRequest:
-      description: Bad request
+      description: Bad request - validation failed
+      headers:
+        X-Correlation-Id:
+          schema:
+            type: string
+          description: Unique request correlation ID for debugging
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ApiError'
+    
+    Unauthorized:
+      description: Authentication required or token invalid
+      headers:
+        X-Correlation-Id:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                example: AUTH_UNAUTHORIZED
+              message:
+                type: string
+                example: Authentication required
+              correlationId:
+                type: string
+                format: uuid
+    
     NotFound:
-      description: Not found
+      description: Resource not found
+      headers:
+        X-Correlation-Id:
+          schema:
+            type: string
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ApiError'
+    
     Conflict:
-      description: Conflict
+      description: Conflict - resource already exists or constraint violation
+      headers:
+        X-Correlation-Id:
+          schema:
+            type: string
       content:
         application/json:
           schema:

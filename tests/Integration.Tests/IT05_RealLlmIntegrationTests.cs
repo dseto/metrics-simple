@@ -142,7 +142,7 @@ public class IT05_RealLlmIntegrationTests : IAsyncLifetime
         };
 
         var response = await _httpClient.PostAsync(
-            "/api/ai/dsl/generate",
+            "/api/v1/ai/dsl/generate",
             new StringContent(
                 JsonSerializer.Serialize(request),
                 System.Text.Encoding.UTF8,
@@ -170,7 +170,7 @@ public class IT05_RealLlmIntegrationTests : IAsyncLifetime
             SampleInput: sampleInput);
 
         var previewResponse = await _httpClient.PostAsync(
-            "/api/preview/transform",
+            "/api/v1/preview/transform",
             new StringContent(
                 JsonSerializer.Serialize(previewRequest),
                 System.Text.Encoding.UTF8,
@@ -271,7 +271,7 @@ public class IT05_RealLlmIntegrationTests : IAsyncLifetime
         };
 
         var response = await _httpClient.PostAsync(
-            "/api/ai/dsl/generate",
+            "/api/v1/ai/dsl/generate",
             new StringContent(
                 JsonSerializer.Serialize(request),
                 System.Text.Encoding.UTF8,
@@ -294,7 +294,7 @@ public class IT05_RealLlmIntegrationTests : IAsyncLifetime
             SampleInput: sampleInput);
 
         var previewResponse = await _httpClient.PostAsync(
-            "/api/preview/transform",
+            "/api/v1/preview/transform",
             new StringContent(
                 JsonSerializer.Serialize(previewRequest),
                 System.Text.Encoding.UTF8,
@@ -388,7 +388,7 @@ public class IT05_RealLlmIntegrationTests : IAsyncLifetime
         };
 
         var response = await _httpClient.PostAsync(
-            "/api/ai/dsl/generate",
+            "/api/v1/ai/dsl/generate",
             new StringContent(
                 JsonSerializer.Serialize(request),
                 System.Text.Encoding.UTF8,
@@ -410,7 +410,7 @@ public class IT05_RealLlmIntegrationTests : IAsyncLifetime
             SampleInput: sampleInput);
 
         var previewResponse = await _httpClient.PostAsync(
-            "/api/preview/transform",
+            "/api/v1/preview/transform",
             new StringContent(
                 JsonSerializer.Serialize(previewRequest),
                 System.Text.Encoding.UTF8,
@@ -499,7 +499,7 @@ public class IT05_RealLlmIntegrationTests : IAsyncLifetime
         };
 
         var response = await _httpClient.PostAsync(
-            "/api/ai/dsl/generate",
+            "/api/v1/ai/dsl/generate",
             new StringContent(
                 JsonSerializer.Serialize(request),
                 System.Text.Encoding.UTF8,
@@ -518,7 +518,7 @@ public class IT05_RealLlmIntegrationTests : IAsyncLifetime
             SampleInput: sampleInput);
 
         var previewResponse = await _httpClient.PostAsync(
-            "/api/preview/transform",
+            "/api/v1/preview/transform",
             new StringContent(
                 JsonSerializer.Serialize(previewRequest),
                 System.Text.Encoding.UTF8,

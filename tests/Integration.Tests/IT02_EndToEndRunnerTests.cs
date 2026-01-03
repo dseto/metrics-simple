@@ -85,7 +85,7 @@ public class IT02_EndToEndRunnerTests : IDisposable
             AuthRef: authRef,
             TimeoutSeconds: 30
         );
-        var connResponse = await _client.PostAsJsonAsync("/api/connectors", connector);
+        var connResponse = await _client.PostAsJsonAsync("/api/v1/connectors", connector);
         connResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
         // 2. Create Process
@@ -99,7 +99,7 @@ public class IT02_EndToEndRunnerTests : IDisposable
                 new OutputDestinationDto(Type: "LocalFileSystem", Local: new LocalFileSystemDto(_outputPath))
             }
         );
-        var procResponse = await _client.PostAsJsonAsync("/api/processes", process);
+        var procResponse = await _client.PostAsJsonAsync("/api/v1/processes", process);
         procResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
         // 3. Create ProcessVersion with DSL and schema from fixtures
@@ -120,7 +120,7 @@ public class IT02_EndToEndRunnerTests : IDisposable
             Dsl: new DslDto(Profile: "jsonata", Text: TestFixtures.GetHostsCpuDsl()),
             OutputSchema: outputSchema
         );
-        var verResponse = await _client.PostAsJsonAsync($"/api/processes/{processId}/versions", version);
+        var verResponse = await _client.PostAsJsonAsync($"/api/v1/processes/{processId}/versions", version);
         verResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
         // Act: Execute Runner CLI as a real process
@@ -186,7 +186,7 @@ public class IT02_EndToEndRunnerTests : IDisposable
             AuthRef: authRef,
             TimeoutSeconds: 30
         );
-        await _client.PostAsJsonAsync("/api/connectors", connector);
+        await _client.PostAsJsonAsync("/api/v1/connectors", connector);
 
         var process = new ProcessDto(
             Id: processId,
@@ -198,7 +198,7 @@ public class IT02_EndToEndRunnerTests : IDisposable
                 new OutputDestinationDto(Type: "LocalFileSystem", Local: new LocalFileSystemDto(_outputPath))
             }
         );
-        await _client.PostAsJsonAsync("/api/processes", process);
+        await _client.PostAsJsonAsync("/api/v1/processes", process);
 
         var outputSchema = JsonDocument.Parse(TestFixtures.GetHostsCpuOutputSchemaJson()).RootElement;
         var version = new ProcessVersionDto(
@@ -217,7 +217,7 @@ public class IT02_EndToEndRunnerTests : IDisposable
             Dsl: new DslDto(Profile: "jsonata", Text: TestFixtures.GetHostsCpuDsl()),
             OutputSchema: outputSchema
         );
-        await _client.PostAsJsonAsync($"/api/processes/{processId}/versions", version);
+        await _client.PostAsJsonAsync($"/api/v1/processes/{processId}/versions", version);
 
         // Act: Run with correct secret -> should succeed
         var runnerResult = await RunRunnerProcessAsync(processId, "1", _outputPath, _dbPath, authRef);

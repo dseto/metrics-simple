@@ -1,32 +1,21 @@
-# Backend Specs
+# Backend Specs — Delta Pack: Segurança + AuthN/AuthZ (LocalJwt em SQLite, Okta/Entra-ready)
 
-Data: 2026-01-01
+**Data:** 2026-01-03
 
-## Propósito
-Define **comportamento e implementação server-side** (API, Engine e Runner).
+Este delta pack adiciona uma camada mínima de segurança e autenticação/autorização ao backend,
+mantendo o design preparado para migrar no futuro para **Okta** ou **Entra ID** com baixo impacto.
 
-## Referências obrigatórias
-- OpenAPI e Schemas ficam em `../shared/`.
-- Se precisar citar contrato, aponte para:
-  - `../shared/openapi/config-api.yaml`
-  - `../shared/domain/schemas/*.schema.json`
+## Estrutura (mesma do spec deck original)
+- `00-vision/` visão e índice do delta
+- `02-domain/` modelos e invariantes de auth
+- `03-interfaces/` endpoints, contrato de erro e requisitos de segurança da API
+- `04-execution/` ordem de middlewares e pipeline de auth
+- `06-storage/` schema SQLite + migration
+- `07-observability/` audit logging por request
+- `09-testing/` testes e critérios de aceite
 
-## Conteúdo típico
-- Execução: `04-execution/`
-- Transformação: `05-transformation/`
-- Storage: `06-storage/`
-- Observabilidade: `07-observability/`
+> Observação: este pack descreve **alterações (delta)** sobre o deck base.
+Ele não substitui o deck inteiro; ele especifica o que deve ser acrescentado/alterado.
 
-
-## Hardened behavior coverage
-Este deck agora inclui specs explícitas para:
-- regras de domínio
-- comportamento de API (erros/status/idempotência)
-- pipeline de execução do runner + contrato de CLI
-- regras determinísticas de CSV e validação de outputSchema
-- schema SQLite e contratos de repositório
-- observabilidade via logs JSONL
-- golden/contract/repository tests
-
-- integration tests E2E obrigatórios (WebApplicationFactory + mock HTTP + runner)
-
+## Arquivo de entrada
+- `00-vision/security-auth-delta.md` (comece por aqui)

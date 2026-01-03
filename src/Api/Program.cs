@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Metrics.Api;
 using Metrics.Api.AI;
+using Metrics.Api.Auth;
 using Metrics.Engine;
 using Serilog;
 
@@ -19,16 +20,47 @@ builder.Services.AddSwaggerGen(c =>
         Version = "v1",
         Description = "API de configuração para Metrics Simple (Spec-Driven)"
     });
+
+    // Add JWT bearer auth to Swagger
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token.",
+        Name = "Authorization",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 
-// Configure CORS for frontend development (localhost:4200)
+// Load Auth configuration
+var authOptions = builder.Configuration.GetSection(AuthOptions.SectionName).Get<AuthOptions>() ?? new AuthOptions();
+
+// Configure CORS with AllowedOrigins from Auth config
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", builder =>
+    options.AddPolicy("AllowFrontend", corsBuilder =>
     {
-        var corsOrigins = Environment.GetEnvironmentVariable("CORS_ORIGINS")?.Split(';') ?? new[] { "http://localhost:4200", "https://localhost:4200" };
+        // Use Auth.AllowedOrigins (priority) or CORS_ORIGINS env var
+        var corsOrigins = authOptions.AllowedOrigins.Length > 0 
+            ? authOptions.AllowedOrigins 
+            : Environment.GetEnvironmentVariable("CORS_ORIGINS")?.Split(';') ?? new[] { "http://localhost:4200" };
         
-        builder
+        corsBuilder
             .WithOrigins(corsOrigins)
             .AllowAnyMethod()
             .AllowAnyHeader()
@@ -50,6 +82,11 @@ dbProvider.InitializeDatabase(dbPath);
 builder.Services.AddScoped<IProcessRepository>(_ => new ProcessRepository(dbPath));
 builder.Services.AddScoped<IProcessVersionRepository>(_ => new ProcessVersionRepository(dbPath));
 builder.Services.AddScoped<IConnectorRepository>(_ => new ConnectorRepository(dbPath));
+builder.Services.AddScoped<IAuthUserRepository>(_ => new AuthUserRepository(dbPath));
+
+// Register Auth services (including authentication, authorization, and rate limiting)
+builder.Services.AddAuthServices(authOptions);
+builder.Services.AddAuthRateLimiting(authOptions);
 
 // Register Engine services
 builder.Services.AddScoped<IDslTransformer, JsonataTransformer>();
@@ -111,7 +148,18 @@ builder.Services.AddSingleton<IAiProvider>(sp =>
 
 var app = builder.Build();
 
+// Bootstrap admin user if needed (LocalJwt mode)
+using (var scope = app.Services.CreateScope())
+{
+    var bootstrapService = scope.ServiceProvider.GetRequiredService<IBootstrapAdminService>();
+    await bootstrapService.EnsureAdminExistsAsync();
+}
+
+// 1) Correlation ID middleware (must be first to capture all requests)
+app.UseCorrelationId();
+
 // Enable Swagger in all environments for spec-driven development
+// In non-dev, Swagger is still available but requires Admin auth (see route protection below)
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
@@ -125,67 +173,270 @@ if (!app.Environment.IsEnvironment("Testing"))
     app.UseHttpsRedirection();
 }
 
-// Use CORS
+// 2) CORS
 app.UseCors("AllowFrontend");
 
-// Health check (sem versionamento)
-app.MapGet("/api/health", GetHealth)
-    .WithName("Health");
+// 3) Rate limiting
+app.UseRateLimiter();
 
-// API v1 Group
+// 4) Authentication
+if (authOptions.Mode != "Off")
+{
+    app.UseAuthentication();
+}
+
+// 5) Authorization (always needed because endpoints have RequireAuthorization)
+app.UseAuthorization();
+
+// 6) Claims normalization (after auth, before audit)
+app.UseClaimsNormalization();
+
+// 7) Audit logging middleware (logs all requests including auth failures)
+app.UseAuditLogging();
+
+// ============================================================================
+// Auth Endpoints (LocalJwt mode only)
+// ============================================================================
+var authGroup = app.MapGroup("/api/auth")
+    .WithTags("Auth");
+
+// POST /api/auth/token - Login endpoint (only LocalJwt)
+authGroup.MapPost("/token", async (
+    TokenRequest request,
+    IAuthUserRepository userRepo,
+    IPasswordHasher passwordHasher,
+    ITokenService tokenService,
+    AuthOptions options,
+    HttpContext httpContext,
+    ILogger<Program> logger) =>
+{
+    var correlationId = httpContext.GetCorrelationId();
+
+    // Check if LocalJwt mode
+    if (options.Mode != "LocalJwt")
+    {
+        return AuthErrorHandler.AuthDisabled(httpContext, "Token endpoint not available in current auth mode");
+    }
+
+    // Validate request
+    if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
+    {
+        logger.LogWarning("Login attempt with empty credentials. CorrelationId={CorrelationId}", correlationId);
+        return AuthErrorHandler.Unauthorized(httpContext, "Invalid credentials");
+    }
+
+    // Get user (case-insensitive)
+    var user = await userRepo.GetByUsernameAsync(request.Username);
+    if (user == null)
+    {
+        logger.LogWarning("Login attempt for non-existent user. Username={Username}, CorrelationId={CorrelationId}",
+            request.Username.ToLowerInvariant(), correlationId);
+        return AuthErrorHandler.Unauthorized(httpContext, "Invalid credentials");
+    }
+
+    // Check if user is active
+    if (!user.IsActive)
+    {
+        logger.LogWarning("Login attempt for inactive user. UserId={UserId}, CorrelationId={CorrelationId}",
+            user.Id, correlationId);
+        return AuthErrorHandler.Unauthorized(httpContext, "Account is disabled");
+    }
+
+    // Check lockout
+    if (user.LockoutUntilUtc.HasValue && user.LockoutUntilUtc.Value > DateTime.UtcNow)
+    {
+        logger.LogWarning("Login attempt for locked user. UserId={UserId}, LockoutUntil={LockoutUntil}, CorrelationId={CorrelationId}",
+            user.Id, user.LockoutUntilUtc.Value, correlationId);
+        return AuthErrorHandler.RateLimited(httpContext, "Account is temporarily locked. Try again later.");
+    }
+
+    // Verify password
+    if (!passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
+    {
+        // Increment failed attempts
+        var newFailedAttempts = user.FailedAttempts + 1;
+        DateTime? lockoutUntil = null;
+
+        if (newFailedAttempts >= options.LocalJwt.MaxFailedAttempts)
+        {
+            lockoutUntil = DateTime.UtcNow.AddMinutes(options.LocalJwt.LockoutMinutes);
+            logger.LogWarning("User locked out due to failed attempts. UserId={UserId}, FailedAttempts={FailedAttempts}, LockoutUntil={LockoutUntil}, CorrelationId={CorrelationId}",
+                user.Id, newFailedAttempts, lockoutUntil, correlationId);
+        }
+        else
+        {
+            logger.LogWarning("Failed login attempt. UserId={UserId}, FailedAttempts={FailedAttempts}, CorrelationId={CorrelationId}",
+                user.Id, newFailedAttempts, correlationId);
+        }
+
+        await userRepo.UpdateLoginAttemptAsync(user.Id, newFailedAttempts, lockoutUntil, null);
+        return AuthErrorHandler.Unauthorized(httpContext, "Invalid credentials");
+    }
+
+    // Success: reset failed attempts and update last login
+    await userRepo.UpdateLoginAttemptAsync(user.Id, 0, null, DateTime.UtcNow);
+
+    // Generate token
+    var token = tokenService.GenerateToken(user);
+    var expiresIn = tokenService.GetExpiresInSeconds();
+
+    logger.LogInformation("Login successful. UserId={UserId}, Username={Username}, CorrelationId={CorrelationId}",
+        user.Id, user.Username, correlationId);
+
+    return Results.Ok(new TokenResponse
+    {
+        AccessToken = token,
+        TokenType = "Bearer",
+        ExpiresIn = expiresIn
+    });
+})
+.WithName("Token")
+.RequireRateLimiting("login")
+.AllowAnonymous();
+
+// GET /api/auth/me - Get current user info (requires auth)
+authGroup.MapGet("/me", (HttpContext httpContext) =>
+{
+    var user = httpContext.User;
+    if (user.Identity?.IsAuthenticated != true)
+    {
+        return AuthErrorHandler.Unauthorized(httpContext);
+    }
+
+    var sub = user.FindFirst("sub")?.Value ?? user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+    var roles = user.FindAll("app_roles").Select(c => c.Value).ToList();
+    var displayName = user.FindFirst("display_name")?.Value;
+    var email = user.FindFirst("email")?.Value ?? user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+
+    return Results.Ok(new UserInfoResponse
+    {
+        Sub = sub,
+        Roles = roles,
+        DisplayName = displayName,
+        Email = email
+    });
+})
+.WithName("GetCurrentUser")
+.RequireAuthorization(AuthPolicies.Reader);
+
+// ============================================================================
+// Admin Auth Endpoints (optional but recommended)
+// ============================================================================
+var adminAuthGroup = app.MapGroup("/api/admin/auth/users")
+    .WithTags("Admin - Auth")
+    .RequireAuthorization(AuthPolicies.Admin);
+
+// POST /api/admin/auth/users - Create new user
+adminAuthGroup.MapPost("/", CreateUserHandler)
+    .WithName("CreateUser")
+    .Produces(201)
+    .Produces(400)
+    .Produces(409);
+
+// GET /api/admin/auth/users/{userId} - Get user details
+adminAuthGroup.MapGet("/{userId}", GetUserHandler)
+    .WithName("GetUser")
+    .Produces(200)
+    .Produces(404);
+
+// PUT /api/admin/auth/users/{userId}/password - Change user password
+adminAuthGroup.MapPut("/{userId}/password", ChangeUserPasswordHandler)
+    .WithName("ChangeUserPassword")
+    .Produces(200)
+    .Produces(400)
+    .Produces(404);
+
+// PUT /api/admin/auth/users/{userId} - Update user profile and roles
+adminAuthGroup.MapPut("/{userId}", UpdateUserHandler)
+    .WithName("UpdateUser")
+    .Produces(200)
+    .Produces(404);
+
+// ============================================================================
+// Health check (no auth required, no versioning)
+// ============================================================================
+app.MapGet("/api/health", GetHealth)
+    .WithName("Health")
+    .AllowAnonymous();
+
+// ============================================================================
+// API v1 endpoints (all routes require auth unless specified)
+// ============================================================================
 var v1 = app.MapGroup("/api/v1");
 
 // Process endpoints
 var processGroup = v1.MapGroup("/processes")
     .WithTags("Processes");
 
+// GET - Reader policy (read-only access)
 processGroup.MapGet("/", GetAllProcesses)
-    .WithName("ListProcesses");
+    .WithName("ListProcesses")
+    .RequireAuthorization(AuthPolicies.Reader);
 
+// POST - Admin policy (create)
 processGroup.MapPost("/", CreateProcess)
-    .WithName("CreateProcess");
+    .WithName("CreateProcess")
+    .RequireAuthorization(AuthPolicies.Admin);
 
+// GET - Reader policy
 processGroup.MapGet("/{id}", GetProcessById)
-    .WithName("GetProcess");
+    .WithName("GetProcess")
+    .RequireAuthorization(AuthPolicies.Reader);
 
+// PUT - Admin policy (update)
 processGroup.MapPut("/{id}", UpdateProcess)
-    .WithName("UpdateProcess");
+    .WithName("UpdateProcess")
+    .RequireAuthorization(AuthPolicies.Admin);
 
+// DELETE - Admin policy
 processGroup.MapDelete("/{id}", DeleteProcess)
-    .WithName("DeleteProcess");
+    .WithName("DeleteProcess")
+    .RequireAuthorization(AuthPolicies.Admin);
 
 // ProcessVersion endpoints
 var versionGroup = v1.MapGroup("/processes/{processId}/versions")
     .WithTags("ProcessVersions");
 
+// POST - Admin policy
 versionGroup.MapPost("/", CreateProcessVersion)
-    .WithName("CreateProcessVersion");
+    .WithName("CreateProcessVersion")
+    .RequireAuthorization(AuthPolicies.Admin);
 
+// GET - Reader policy
 versionGroup.MapGet("/{version}", GetProcessVersion)
-    .WithName("GetProcessVersion");
+    .WithName("GetProcessVersion")
+    .RequireAuthorization(AuthPolicies.Reader);
 
+// PUT - Admin policy
 versionGroup.MapPut("/{version}", UpdateProcessVersion)
-    .WithName("UpdateProcessVersion");
+    .WithName("UpdateProcessVersion")
+    .RequireAuthorization(AuthPolicies.Admin);
 
 // Connector endpoints
 var connectorGroup = v1.MapGroup("/connectors")
     .WithTags("Connectors");
 
+// GET - Reader policy
 connectorGroup.MapGet("/", GetAllConnectors)
-    .WithName("ListConnectors");
+    .WithName("ListConnectors")
+    .RequireAuthorization(AuthPolicies.Reader);
 
+// POST - Admin policy
 connectorGroup.MapPost("/", CreateConnector)
-    .WithName("CreateConnector");
+    .WithName("CreateConnector")
+    .RequireAuthorization(AuthPolicies.Admin);
 
-// Preview Transform endpoint
+// Preview Transform endpoint - Reader policy (design-time operation)
 v1.MapPost("/preview/transform", PreviewTransform)
     .WithName("PreviewTransform")
-    .WithTags("Preview");
+    .WithTags("Preview")
+    .RequireAuthorization(AuthPolicies.Reader);
 
-// AI DSL Generate endpoint
+// AI DSL Generate endpoint - Reader policy (design-time operation)
 v1.MapPost("/ai/dsl/generate", GenerateDsl)
     .WithName("GenerateDsl")
-    .WithTags("AI");
+    .WithTags("AI")
+    .RequireAuthorization(AuthPolicies.Reader);
 
 app.Run();
 
@@ -201,7 +452,7 @@ async Task<IResult> GetAllProcesses(IProcessRepository repo)
 async Task<IResult> CreateProcess(ProcessDto process, IProcessRepository repo)
 {
     var created = await repo.CreateProcessAsync(process);
-    return Results.Created($"/api/processes/{created.Id}", created);
+    return Results.Created($"/api/v1/processes/{created.Id}", created);
 }
 
 async Task<IResult> GetProcessById(string id, IProcessRepository repo)
@@ -226,7 +477,7 @@ async Task<IResult> DeleteProcess(string id, IProcessRepository repo)
 async Task<IResult> CreateProcessVersion(string processId, ProcessVersionDto version, IProcessVersionRepository repo)
 {
     var created = await repo.CreateVersionAsync(version with { ProcessId = processId });
-    return Results.Created($"/api/processes/{processId}/versions/{created.Version}", created);
+    return Results.Created($"/api/v1/processes/{processId}/versions/{created.Version}", created);
 }
 
 async Task<IResult> GetProcessVersion(string processId, string version, IProcessVersionRepository repo)
@@ -251,7 +502,7 @@ async Task<IResult> GetAllConnectors(IConnectorRepository repo)
 async Task<IResult> CreateConnector(ConnectorDto connector, IConnectorRepository repo)
 {
     var created = await repo.CreateConnectorAsync(connector);
-    return Results.Created($"/api/connectors/{created.Id}", created);
+    return Results.Created($"/api/v1/connectors/{created.Id}", created);
 }
 
 async Task<IResult> PreviewTransform(PreviewTransformRequestDto request, EngineService engine)
@@ -477,4 +728,168 @@ async Task<IResult> GenerateDsl(
             CorrelationId = correlationId
         }, statusCode: 503);
     }
+}
+
+// ============================================================================
+// Admin User Management Handlers
+// ============================================================================
+
+static async Task<IResult> CreateUserHandler(
+    CreateUserRequest request,
+    IAuthUserRepository userRepo,
+    IPasswordHasher passwordHasher,
+    ILogger<Program> logger,
+    HttpContext httpContext)
+{
+    var correlationId = httpContext.GetCorrelationId();
+
+    // Validate request
+    if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
+    {
+        return AuthErrorHandler.BadRequest(httpContext, "Username and password are required");
+    }
+
+    if (request.Password.Length < 8)
+    {
+        return AuthErrorHandler.BadRequest(httpContext, "Password must be at least 8 characters");
+    }
+
+    // Check if user already exists
+    var existing = await userRepo.GetByUsernameAsync(request.Username);
+    if (existing != null)
+    {
+        return AuthErrorHandler.Conflict(httpContext, "User already exists");
+    }
+
+    // Create user
+    var now = DateTime.UtcNow;
+    var user = new AuthUser
+    {
+        Id = Guid.NewGuid().ToString("N"),
+        Username = request.Username,
+        DisplayName = request.DisplayName,
+        Email = request.Email,
+        PasswordHash = passwordHasher.HashPassword(request.Password),
+        IsActive = true,
+        FailedAttempts = 0,
+        LockoutUntilUtc = null,
+        CreatedAtUtc = now,
+        UpdatedAtUtc = now,
+        LastLoginUtc = null,
+        Roles = request.Roles ?? new List<string> { AppRoles.Reader }
+    };
+
+    await userRepo.CreateAsync(user);
+
+    logger.LogInformation(
+        "User created. UserId={UserId}, Username={Username}, Roles={Roles}, CorrelationId={CorrelationId}",
+        user.Id, user.Username, string.Join(",", user.Roles), correlationId);
+
+    return Results.Created($"/api/admin/auth/users/{user.Id}", new
+    {
+        id = user.Id,
+        username = user.Username,
+        displayName = user.DisplayName,
+        email = user.Email,
+        isActive = user.IsActive,
+        roles = user.Roles,
+        createdAt = user.CreatedAtUtc
+    });
+}
+
+static async Task<IResult> GetUserHandler(
+    string userId,
+    IAuthUserRepository userRepo)
+{
+    var user = await userRepo.GetByIdAsync(userId);
+    if (user == null)
+        return Results.NotFound();
+
+    return Results.Ok(new
+    {
+        id = user.Id,
+        username = user.Username,
+        displayName = user.DisplayName,
+        email = user.Email,
+        isActive = user.IsActive,
+        roles = user.Roles,
+        createdAt = user.CreatedAtUtc,
+        lastLogin = user.LastLoginUtc
+    });
+}
+
+static async Task<IResult> ChangeUserPasswordHandler(
+    string userId,
+    ChangePasswordRequest request,
+    IAuthUserRepository userRepo,
+    IPasswordHasher passwordHasher,
+    ILogger<Program> logger,
+    HttpContext httpContext)
+{
+    var correlationId = httpContext.GetCorrelationId();
+
+    if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
+    {
+        return AuthErrorHandler.BadRequest(httpContext, "Password must be at least 8 characters");
+    }
+
+    var user = await userRepo.GetByIdAsync(userId);
+    if (user == null)
+        return Results.NotFound();
+
+    user = user with
+    {
+        PasswordHash = passwordHasher.HashPassword(request.NewPassword),
+        UpdatedAtUtc = DateTime.UtcNow,
+        FailedAttempts = 0,
+        LockoutUntilUtc = null
+    };
+
+    await userRepo.UpdateAsync(user);
+
+    logger.LogInformation(
+        "User password changed. UserId={UserId}, CorrelationId={CorrelationId}",
+        userId, correlationId);
+
+    return Results.Ok(new { message = "Password updated successfully" });
+}
+
+static async Task<IResult> UpdateUserHandler(
+    string userId,
+    UpdateUserRequest request,
+    IAuthUserRepository userRepo,
+    ILogger<Program> logger,
+    HttpContext httpContext)
+{
+    var correlationId = httpContext.GetCorrelationId();
+
+    var user = await userRepo.GetByIdAsync(userId);
+    if (user == null)
+        return Results.NotFound();
+
+    user = user with
+    {
+        DisplayName = request.DisplayName ?? user.DisplayName,
+        Email = request.Email ?? user.Email,
+        IsActive = request.IsActive ?? user.IsActive,
+        UpdatedAtUtc = DateTime.UtcNow,
+        Roles = request.Roles ?? user.Roles
+    };
+
+    await userRepo.UpdateAsync(user);
+
+    logger.LogInformation(
+        "User updated. UserId={UserId}, CorrelationId={CorrelationId}",
+        userId, correlationId);
+
+    return Results.Ok(new
+    {
+        id = user.Id,
+        username = user.Username,
+        displayName = user.DisplayName,
+        email = user.Email,
+        isActive = user.IsActive,
+        roles = user.Roles,
+        updatedAt = user.UpdatedAtUtc
+    });
 }

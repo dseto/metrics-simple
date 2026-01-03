@@ -110,6 +110,18 @@ CONFIGURATION REQUIREMENTS:
 - AI configuration must rely on environment variables already supported by the codebase
 - Support both METRICS_OPENROUTER_API_KEY and OPENROUTER_API_KEY (priority order in code)
 
+API VERSIONING (CRITICAL):
+- ALL business endpoints MUST use /api/v1 prefix via MapGroup
+- Health endpoint is EXCEPTION: /api/health (no versioning)
+- Auth endpoints (if LocalJwt): /api/auth/* (no versioning)
+- OpenAPI spec baseUrl: http://localhost:8080/api/v1
+- Implementation pattern:
+  ```csharp
+  var v1 = app.MapGroup("/api/v1");
+  var processGroup = v1.MapGroup("/processes");
+  processGroup.MapGet("/", GetAllProcesses); // Results in /api/v1/processes
+  ```
+
 TESTING REQUIREMENTS:
 - Container must be able to run:
   - dotnet test tests/Contracts.Tests

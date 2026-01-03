@@ -72,7 +72,7 @@ public class IT03_SourceFailureTests : IDisposable
             AuthRef: authRef,
             TimeoutSeconds: 30
         );
-        var connResponse = await _client.PostAsJsonAsync("/api/connectors", connector);
+        var connResponse = await _client.PostAsJsonAsync("/api/v1/connectors", connector);
         connResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
         var process = new ProcessDto(
@@ -85,7 +85,7 @@ public class IT03_SourceFailureTests : IDisposable
                 new OutputDestinationDto(Type: "LocalFileSystem", Local: new LocalFileSystemDto(_outputPath))
             }
         );
-        await _client.PostAsJsonAsync("/api/processes", process);
+        await _client.PostAsJsonAsync("/api/v1/processes", process);
 
         var outputSchema = JsonDocument.Parse(TestFixtures.GetHostsCpuOutputSchemaJson()).RootElement;
         var version = new ProcessVersionDto(
@@ -104,7 +104,7 @@ public class IT03_SourceFailureTests : IDisposable
             Dsl: new DslDto(Profile: "jsonata", Text: TestFixtures.GetHostsCpuDsl()),
             OutputSchema: outputSchema
         );
-        await _client.PostAsJsonAsync($"/api/processes/{processId}/versions", version);
+        await _client.PostAsJsonAsync($"/api/v1/processes/{processId}/versions", version);
 
         // Act: Execute Runner CLI
         var runnerResult = await RunRunnerProcessAsync(processId, "1", _outputPath, _dbPath, authRef);
@@ -146,7 +146,7 @@ public class IT03_SourceFailureTests : IDisposable
             AuthRef: authRef,
             TimeoutSeconds: 30
         );
-        await _client.PostAsJsonAsync("/api/connectors", connector);
+        await _client.PostAsJsonAsync("/api/v1/connectors", connector);
 
         var process = new ProcessDto(
             Id: processId,
@@ -158,7 +158,7 @@ public class IT03_SourceFailureTests : IDisposable
                 new OutputDestinationDto(Type: "LocalFileSystem", Local: new LocalFileSystemDto(_outputPath))
             }
         );
-        await _client.PostAsJsonAsync("/api/processes", process);
+        await _client.PostAsJsonAsync("/api/v1/processes", process);
 
         var outputSchema = JsonDocument.Parse(TestFixtures.GetHostsCpuOutputSchemaJson()).RootElement;
         var version = new ProcessVersionDto(
@@ -176,7 +176,7 @@ public class IT03_SourceFailureTests : IDisposable
             Dsl: new DslDto(Profile: "jsonata", Text: TestFixtures.GetHostsCpuDsl()),
             OutputSchema: outputSchema
         );
-        await _client.PostAsJsonAsync($"/api/processes/{processId}/versions", version);
+        await _client.PostAsJsonAsync($"/api/v1/processes/{processId}/versions", version);
 
         // Act
         var runnerResult = await RunRunnerProcessAsync(processId, "1", _outputPath, _dbPath, authRef);
@@ -209,7 +209,7 @@ public class IT03_SourceFailureTests : IDisposable
             AuthRef: authRef,
             TimeoutSeconds: 30
         );
-        await _client.PostAsJsonAsync("/api/connectors", connector);
+        await _client.PostAsJsonAsync("/api/v1/connectors", connector);
 
         var process = new ProcessDto(
             Id: processId,
@@ -221,7 +221,7 @@ public class IT03_SourceFailureTests : IDisposable
                 new OutputDestinationDto(Type: "LocalFileSystem", Local: new LocalFileSystemDto(_outputPath))
             }
         );
-        await _client.PostAsJsonAsync("/api/processes", process);
+        await _client.PostAsJsonAsync("/api/v1/processes", process);
 
         var outputSchema = JsonDocument.Parse(TestFixtures.GetHostsCpuOutputSchemaJson()).RootElement;
         var version = new ProcessVersionDto(
@@ -236,7 +236,7 @@ public class IT03_SourceFailureTests : IDisposable
             Dsl: new DslDto(Profile: "jsonata", Text: TestFixtures.GetHostsCpuDsl()),
             OutputSchema: outputSchema
         );
-        await _client.PostAsJsonAsync($"/api/processes/{processId}/versions", version);
+        await _client.PostAsJsonAsync($"/api/v1/processes/{processId}/versions", version);
 
         // Act: Run WITHOUT setting the secret env var
         var runnerResult = await RunRunnerProcessWithoutSecretAsync(processId, "1", _outputPath, _dbPath);
@@ -261,7 +261,7 @@ public class IT03_SourceFailureTests : IDisposable
             AuthRef: authRef,
             TimeoutSeconds: 30
         );
-        await _client.PostAsJsonAsync("/api/connectors", connector);
+        await _client.PostAsJsonAsync("/api/v1/connectors", connector);
 
         var process = new ProcessDto(
             Id: processId,
@@ -273,7 +273,7 @@ public class IT03_SourceFailureTests : IDisposable
                 new OutputDestinationDto(Type: "LocalFileSystem", Local: new LocalFileSystemDto(_outputPath))
             }
         );
-        await _client.PostAsJsonAsync("/api/processes", process);
+        await _client.PostAsJsonAsync("/api/v1/processes", process);
 
         var outputSchema = JsonDocument.Parse(TestFixtures.GetHostsCpuOutputSchemaJson()).RootElement;
         var version = new ProcessVersionDto(
@@ -288,7 +288,7 @@ public class IT03_SourceFailureTests : IDisposable
             Dsl: new DslDto(Profile: "jsonata", Text: TestFixtures.GetHostsCpuDsl()),
             OutputSchema: outputSchema
         );
-        await _client.PostAsJsonAsync($"/api/processes/{processId}/versions", version);
+        await _client.PostAsJsonAsync($"/api/v1/processes/{processId}/versions", version);
 
         // Act
         var runnerResult = await RunRunnerProcessAsync(processId, "1", _outputPath, _dbPath, authRef);

@@ -5,6 +5,7 @@ using FluentAssertions;
 using Metrics.Api.AI;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
@@ -44,7 +45,7 @@ public class IT04_AiDslGenerateTests : IClassFixture<AiTestFixture>, IDisposable
         var request = CreateValidRequest();
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/ai/dsl/generate", request);
+        var response = await _client.PostAsJsonAsync("/api/v1/ai/dsl/generate", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -78,7 +79,7 @@ public class IT04_AiDslGenerateTests : IClassFixture<AiTestFixture>, IDisposable
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/ai/dsl/generate", request);
+        var response = await _client.PostAsJsonAsync("/api/v1/ai/dsl/generate", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -96,7 +97,7 @@ public class IT04_AiDslGenerateTests : IClassFixture<AiTestFixture>, IDisposable
         var request = CreateValidRequest();
         var correlationId = "test-correlation-12345";
 
-        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/ai/dsl/generate")
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v1/ai/dsl/generate")
         {
             Content = JsonContent.Create(request),
             Headers = { { "X-Correlation-Id", correlationId } }
@@ -171,7 +172,7 @@ public class IT05_AiDisabledTests : IDisposable
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/ai/dsl/generate", request);
+        var response = await _client.PostAsJsonAsync("/api/v1/ai/dsl/generate", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
@@ -300,7 +301,7 @@ public class IT06_WireMockOpenRouterTests : IDisposable
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/ai/dsl/generate", request);
+        var response = await _client.PostAsJsonAsync("/api/v1/ai/dsl/generate", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -345,7 +346,7 @@ public class IT06_WireMockOpenRouterTests : IDisposable
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/ai/dsl/generate", request);
+        var response = await _client.PostAsJsonAsync("/api/v1/ai/dsl/generate", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
@@ -383,7 +384,7 @@ public class IT06_WireMockOpenRouterTests : IDisposable
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/ai/dsl/generate", request);
+        var response = await _client.PostAsJsonAsync("/api/v1/ai/dsl/generate", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
@@ -439,7 +440,7 @@ public class IT06_WireMockOpenRouterTests : IDisposable
         };
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/ai/dsl/generate", request);
+        var response = await _client.PostAsJsonAsync("/api/v1/ai/dsl/generate", request);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadGateway);
@@ -500,13 +501,24 @@ public class AiTestWebApplicationFactory : WebApplicationFactory<Program>
         _aiConfig = aiConfig;
         _mockProvider = mockProvider;
         _useRealHttpProvider = useRealHttpProvider;
+        
+        // Set environment variables BEFORE creating the client
+        Environment.SetEnvironmentVariable("METRICS_SQLITE_PATH", _dbPath);
+        Environment.SetEnvironmentVariable("Auth__Mode", "Off");
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        Environment.SetEnvironmentVariable("METRICS_SQLITE_PATH", _dbPath);
-
         builder.UseEnvironment("Testing");
+
+        builder.ConfigureAppConfiguration((context, config) =>
+        {
+            // Disable auth for tests
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Auth:Mode"] = "Off"
+            });
+        });
 
         builder.ConfigureServices(services =>
         {
@@ -557,5 +569,6 @@ public class AiTestWebApplicationFactory : WebApplicationFactory<Program>
     {
         base.Dispose(disposing);
         Environment.SetEnvironmentVariable("METRICS_SQLITE_PATH", null);
+        Environment.SetEnvironmentVariable("Auth__Mode", null);
     }
 }

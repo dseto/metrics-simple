@@ -60,7 +60,7 @@ public class IT01_CrudPersistenceTests : IDisposable
         );
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/connectors", connector);
+        var response = await _client.PostAsJsonAsync("/api/v1/connectors", connector);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -73,7 +73,7 @@ public class IT01_CrudPersistenceTests : IDisposable
         created.TimeoutSeconds.Should().Be(connector.TimeoutSeconds);
 
         // Verify persistence via GET
-        var getResponse = await _client.GetAsync("/api/connectors");
+        var getResponse = await _client.GetAsync("/api/v1/connectors");
         getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var connectors = await getResponse.Content.ReadFromJsonAsync<List<ConnectorDto>>();
         connectors.Should().ContainSingle(c => c.Id == connector.Id);
@@ -90,7 +90,7 @@ public class IT01_CrudPersistenceTests : IDisposable
             AuthRef: "api_key_test",
             TimeoutSeconds: 30
         );
-        await _client.PostAsJsonAsync("/api/connectors", connector);
+        await _client.PostAsJsonAsync("/api/v1/connectors", connector);
 
         var process = new ProcessDto(
             Id: "proc-test-001",
@@ -107,7 +107,7 @@ public class IT01_CrudPersistenceTests : IDisposable
         );
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/processes", process);
+        var response = await _client.PostAsJsonAsync("/api/v1/processes", process);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -117,7 +117,7 @@ public class IT01_CrudPersistenceTests : IDisposable
         created.GetProperty("status").GetString().Should().Be(process.Status);
 
         // Verify persistence via GET
-        var getResponse = await _client.GetAsync($"/api/processes/{process.Id}");
+        var getResponse = await _client.GetAsync($"/api/v1/processes/{process.Id}");
         getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var retrieved = await getResponse.Content.ReadFromJsonAsync<JsonElement>();
         retrieved.GetProperty("id").GetString().Should().Be(process.Id);
@@ -134,7 +134,7 @@ public class IT01_CrudPersistenceTests : IDisposable
             AuthRef: "api_key_test",
             TimeoutSeconds: 30
         );
-        await _client.PostAsJsonAsync("/api/connectors", connector);
+        await _client.PostAsJsonAsync("/api/v1/connectors", connector);
 
         var process = new ProcessDto(
             Id: "proc-ver-001",
@@ -149,7 +149,7 @@ public class IT01_CrudPersistenceTests : IDisposable
                 )
             }
         );
-        await _client.PostAsJsonAsync("/api/processes", process);
+        await _client.PostAsJsonAsync("/api/v1/processes", process);
 
         var outputSchema = JsonDocument.Parse(TestFixtures.GetHostsCpuOutputSchemaJson()).RootElement;
         var version = new ProcessVersionDto(
@@ -173,7 +173,7 @@ public class IT01_CrudPersistenceTests : IDisposable
         );
 
         // Act
-        var response = await _client.PostAsJsonAsync($"/api/processes/{process.Id}/versions", version);
+        var response = await _client.PostAsJsonAsync($"/api/v1/processes/{process.Id}/versions", version);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -183,7 +183,7 @@ public class IT01_CrudPersistenceTests : IDisposable
         created.GetProperty("enabled").GetBoolean().Should().BeTrue();
 
         // Verify persistence via GET
-        var getResponse = await _client.GetAsync($"/api/processes/{process.Id}/versions/1");
+        var getResponse = await _client.GetAsync($"/api/v1/processes/{process.Id}/versions/1");
         getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var retrieved = await getResponse.Content.ReadFromJsonAsync<JsonElement>();
         retrieved.GetProperty("processId").GetString().Should().Be(process.Id);
@@ -202,7 +202,7 @@ public class IT01_CrudPersistenceTests : IDisposable
             AuthRef: "api_key_prod",
             TimeoutSeconds: 30
         );
-        var connResponse = await _client.PostAsJsonAsync("/api/connectors", connector);
+        var connResponse = await _client.PostAsJsonAsync("/api/v1/connectors", connector);
         connResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
         // 2. Create Process
@@ -216,7 +216,7 @@ public class IT01_CrudPersistenceTests : IDisposable
                 new OutputDestinationDto(Type: "LocalFileSystem", Local: new LocalFileSystemDto(BasePath: "./output"))
             }
         );
-        var procResponse = await _client.PostAsJsonAsync("/api/processes", process);
+        var procResponse = await _client.PostAsJsonAsync("/api/v1/processes", process);
         procResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
         // 3. Create ProcessVersion
@@ -237,17 +237,17 @@ public class IT01_CrudPersistenceTests : IDisposable
             Dsl: new DslDto(Profile: "jsonata", Text: TestFixtures.GetHostsCpuDsl()),
             OutputSchema: outputSchema
         );
-        var verResponse = await _client.PostAsJsonAsync($"/api/processes/{process.Id}/versions", version);
+        var verResponse = await _client.PostAsJsonAsync($"/api/v1/processes/{process.Id}/versions", version);
         verResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
         // 4. Verify all data persisted
-        var allConnectors = await _client.GetFromJsonAsync<List<JsonElement>>("/api/connectors");
+        var allConnectors = await _client.GetFromJsonAsync<List<JsonElement>>("/api/v1/connectors");
         allConnectors.Should().Contain(c => c.GetProperty("id").GetString() == connector.Id);
 
-        var allProcesses = await _client.GetFromJsonAsync<List<JsonElement>>("/api/processes");
+        var allProcesses = await _client.GetFromJsonAsync<List<JsonElement>>("/api/v1/processes");
         allProcesses.Should().Contain(p => p.GetProperty("id").GetString() == process.Id);
 
-        var retrievedVersion = await _client.GetFromJsonAsync<JsonElement>($"/api/processes/{process.Id}/versions/1");
+        var retrievedVersion = await _client.GetFromJsonAsync<JsonElement>($"/api/v1/processes/{process.Id}/versions/1");
         retrievedVersion.GetProperty("enabled").GetBoolean().Should().BeTrue();
     }
 }

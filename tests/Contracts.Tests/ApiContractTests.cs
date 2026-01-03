@@ -35,11 +35,11 @@ public class ApiContractTests
         Assert.NotNull(spec["info"]);
         Assert.NotNull(spec["paths"]);
         
-        // Verify required paths exist
+        // Verify required paths exist (OpenAPI spec defines paths without /api prefix; server URL provides the base)
         var paths = (IDictionary<object, object>)spec["paths"];
-        Assert.Contains("/api/connectors", paths.Keys.Cast<string>());
-        Assert.Contains("/api/processes", paths.Keys.Cast<string>());
-        Assert.Contains("/api/preview/transform", paths.Keys.Cast<string>());
+        Assert.Contains("/connectors", paths.Keys.Cast<string>());
+        Assert.Contains("/processes", paths.Keys.Cast<string>());
+        Assert.Contains("/preview/transform", paths.Keys.Cast<string>());
     }
 
     [Fact]
@@ -240,8 +240,8 @@ public class ApiContractTests
         var spec = deserializer.Deserialize<dynamic>(yaml);
         var paths = (IDictionary<object, object>)spec["paths"];
         
-        // AI endpoint must exist
-        Assert.Contains("/api/ai/dsl/generate", paths.Keys.Cast<string>());
+        // AI endpoint must exist (OpenAPI spec defines paths without /api prefix; server URL provides the base)
+        Assert.Contains("/ai/dsl/generate", paths.Keys.Cast<string>());
     }
 
     [Fact]

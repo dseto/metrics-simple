@@ -20,8 +20,7 @@ services:
       - ./src/Api/config:/app/config
       - ./src/Api/logs:/app/logs
     depends_on:
-      sqlite:
-        condition: service_started
+      - sqlite
 
   csharp-runner:
     build:
@@ -41,18 +40,17 @@ services:
       - ./src/Api/config:/app/config
       - ./src/Api/logs:/app/logs
     depends_on:
-      csharp-api:
-        condition: service_started
+      - csharp-api
 
   sqlite:
-    image: nouchka/sqlite3:latest
+    image: busybox
     container_name: sqlite
-    restart: unless-stopped
+    restart: no
     networks:
       - backend
     volumes:
       - ./src/Api/config:/data
-    command: ["sqlite3", "/data/config.db"]
+    command: "tail -f /dev/null"
 
 networks:
   backend:
