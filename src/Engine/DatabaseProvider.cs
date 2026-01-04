@@ -103,6 +103,23 @@ public sealed class DatabaseProvider : IDatabaseProvider
         command.CommandText = @"CREATE INDEX IF NOT EXISTS idx_auth_user_roles_role ON auth_user_roles(role)";
         command.ExecuteNonQuery();
 
+        // Create connector_tokens table (encrypted API tokens)
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS connector_tokens (
+                connectorId   TEXT PRIMARY KEY,
+                encVersion    INTEGER NOT NULL,
+                encAlg        TEXT NOT NULL,
+                encNonce      TEXT NOT NULL,
+                encCiphertext TEXT NOT NULL,
+                createdAt     TEXT NOT NULL,
+                updatedAt     TEXT NOT NULL,
+                FOREIGN KEY (connectorId) REFERENCES Connector(id) ON DELETE CASCADE
+            )";
+        command.ExecuteNonQuery();
+
+        command.CommandText = @"CREATE INDEX IF NOT EXISTS idx_connector_tokens_connector ON connector_tokens(connectorId)";
+        command.ExecuteNonQuery();
+
         connection.Close();
     }
 

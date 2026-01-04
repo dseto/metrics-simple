@@ -15,9 +15,7 @@ COPY src/Runner/Runner.csproj ./Runner/
 COPY src/Engine/Engine.csproj ./Engine/
 
 # Restore dependencies
-RUN --mount=type=cache,target=/root/.nuget/packages \
-    --mount=type=cache,target=/root/.cache/msbuild \
-    dotnet restore "Runner/Runner.csproj"
+RUN dotnet restore "Runner/Runner.csproj"
 
 # Copy the rest of the source code
 COPY src/Runner ./Runner/

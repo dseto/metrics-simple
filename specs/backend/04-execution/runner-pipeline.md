@@ -16,7 +16,7 @@ Execução síncrona acionada por CLI (sem filas).
 ## Pipeline
 1) InitExecution: gerar executionId; log ExecutionStarted
 2) LoadProcessConfig: carregar Process/Connector/Version; validar status=Active
-3) FetchSource: chamar endpoint origem (timeout); aplicar headers/query
+3) FetchSource: chamar endpoint origem (timeout); aplicar headers/query; se existir token do Connector, decriptografar e adicionar header `Authorization: Bearer <token>` (não logar token/headers sensíveis)
 4) Transform: aplicar DSL e gerar JSON
 5) ValidateOutputSchema: validar JSON vs outputSchema
 6) GenerateCsv: CSV determinístico

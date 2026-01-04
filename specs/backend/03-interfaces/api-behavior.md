@@ -63,13 +63,33 @@ Erros (mínimo):
 
 ### GET /connectors
 - Ordenação: `id` ascendente
+- Retorna `hasApiToken: boolean` para cada Connector
+- **Nunca** retorna o valor do token (`apiToken`)
+
+### GET /connectors/{connectorId}
+- Retorna `hasApiToken: boolean`
+- **Nunca** retorna o valor do token (`apiToken`)
+- 404 connectorId não encontrado
 
 ### POST /connectors
+- Aceita `apiToken` opcional no payload
+- Validação `apiToken` (quando presente e não-null): tamanho 1..4096
 - 409 id duplicado
 - 400 baseUrl inválida
+- 400 apiToken inválido (tamanho)
+- 500 se `METRICS_SECRET_KEY` estiver ausente e for necessário persistir token
+
+### PUT /connectors/{connectorId}
+- Semântica de update para `apiToken`:
+  - **omitido** => mantém token atual
+  - **string** => substitui token
+  - **null** => remove token
+- Validação `apiToken` (quando presente e não-null): tamanho 1..4096
+- 404 connectorId não encontrado
+- 400 apiToken inválido (tamanho)
+- 500 se `METRICS_SECRET_KEY` estiver ausente e for necessário criptografar/persistir token
 
 ---
-
 ## Preview
 
 ### POST /preview/transform

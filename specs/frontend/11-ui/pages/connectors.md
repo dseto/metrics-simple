@@ -6,7 +6,8 @@
     - `/connectors`
 
     ## Purpose
-    - CRUD de Connectors (baseUrl, authRef, timeout).
+    - CRUD de Connectors (baseUrl, authRef, timeout, apiToken).
+    - Observação: o token não é exibido após salvar; apenas um indicador "Token configurado".
 
 ## Referência visual
 - `visual/mockups/A_UI_design_mockup_in_Material_Design_3_(Material_.png`

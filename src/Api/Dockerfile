@@ -15,10 +15,8 @@ COPY global.json .
 COPY src/Api/Api.csproj ./Api/
 COPY src/Engine/Engine.csproj ./Engine/
 
-# Restore dependencies (use cache mounts for speed)
-RUN --mount=type=cache,target=/root/.nuget/packages \
-    --mount=type=cache,target=/root/.cache/msbuild \
-    dotnet restore Api/Api.csproj
+# Restore dependencies
+RUN dotnet restore Api/Api.csproj
 
 # Copy the rest of the source code
 COPY src/Api ./Api/

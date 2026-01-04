@@ -82,7 +82,11 @@ dbProvider.InitializeDatabase(dbPath);
 builder.Services.AddScoped<IProcessRepository>(_ => new ProcessRepository(dbPath));
 builder.Services.AddScoped<IProcessVersionRepository>(_ => new ProcessVersionRepository(dbPath));
 builder.Services.AddScoped<IConnectorRepository>(_ => new ConnectorRepository(dbPath));
+builder.Services.AddScoped<IConnectorTokenRepository>(_ => new ConnectorTokenRepository(dbPath));
 builder.Services.AddScoped<IAuthUserRepository>(_ => new AuthUserRepository(dbPath));
+
+// Register Token Encryption Service (throws if METRICS_SECRET_KEY not set, but that's by design)
+builder.Services.AddScoped<ITokenEncryptionService>(sp => new TokenEncryptionService());
 
 // Register Auth services (including authentication, authorization, and rate limiting)
 builder.Services.AddAuthServices(authOptions);
@@ -421,9 +425,19 @@ connectorGroup.MapGet("/", GetAllConnectors)
     .WithName("ListConnectors")
     .RequireAuthorization(AuthPolicies.Reader);
 
+// GET /{id} - Reader policy
+connectorGroup.MapGet("/{id}", GetConnectorById)
+    .WithName("GetConnector")
+    .RequireAuthorization(AuthPolicies.Reader);
+
 // POST - Admin policy
 connectorGroup.MapPost("/", CreateConnector)
     .WithName("CreateConnector")
+    .RequireAuthorization(AuthPolicies.Admin);
+
+// PUT /{id} - Admin policy
+connectorGroup.MapPut("/{id}", UpdateConnector)
+    .WithName("UpdateConnector")
     .RequireAuthorization(AuthPolicies.Admin);
 
 // Preview Transform endpoint - Reader policy (design-time operation)
@@ -499,10 +513,61 @@ async Task<IResult> GetAllConnectors(IConnectorRepository repo)
     return Results.Ok(connectors);
 }
 
-async Task<IResult> CreateConnector(ConnectorDto connector, IConnectorRepository repo)
+async Task<IResult> GetConnectorById(string id, IConnectorRepository repo)
 {
-    var created = await repo.CreateConnectorAsync(connector);
-    return Results.Created($"/api/v1/connectors/{created.Id}", created);
+    var connector = await repo.GetConnectorByIdAsync(id);
+    if (connector == null)
+        return Results.NotFound();
+    return Results.Ok(connector);
+}
+
+async Task<IResult> CreateConnector(
+    ConnectorCreateDto connector,
+    IConnectorRepository repo,
+    ITokenEncryptionService encryptionService,
+    IConnectorTokenRepository tokenRepo,
+    HttpContext httpContext)
+{
+    try
+    {
+        var created = await repo.CreateConnectorAsync(connector, encryptionService, tokenRepo);
+        return Results.Created($"/api/v1/connectors/{created.Id}", created);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (InvalidOperationException ex) when (ex.Message.Contains("METRICS_SECRET_KEY"))
+    {
+        return Results.Problem(ex.Message, statusCode: 500);
+    }
+}
+
+async Task<IResult> UpdateConnector(
+    string id,
+    ConnectorUpdateDto connector,
+    IConnectorRepository repo,
+    ITokenEncryptionService encryptionService,
+    IConnectorTokenRepository tokenRepo,
+    HttpContext httpContext)
+{
+    try
+    {
+        var updated = await repo.UpdateConnectorAsync(id, connector, encryptionService, tokenRepo);
+        return Results.Ok(updated);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
+    {
+        return Results.NotFound();
+    }
+    catch (InvalidOperationException ex) when (ex.Message.Contains("METRICS_SECRET_KEY"))
+    {
+        return Results.Problem(ex.Message, statusCode: 500);
+    }
 }
 
 async Task<IResult> PreviewTransform(PreviewTransformRequestDto request, EngineService engine)

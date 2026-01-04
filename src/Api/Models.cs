@@ -54,8 +54,30 @@ public record ConnectorDto(
     string Name,
     string BaseUrl,
     string AuthRef,
-    int TimeoutSeconds
+    int TimeoutSeconds,
+    bool? HasApiToken = null  // Read-only: indicates if token exists (never returns actual token)
 );
+
+public record ConnectorCreateDto(
+    string Id,
+    string Name,
+    string BaseUrl,
+    string AuthRef,
+    int TimeoutSeconds,
+    string? ApiToken = null  // Write-only: optional API token (1..4096 chars if provided)
+);
+
+public record ConnectorUpdateDto(
+    string Name,
+    string BaseUrl,
+    string AuthRef,
+    int TimeoutSeconds,
+    string? ApiToken  // Write-only: null=remove, omitted=keep, string=replace
+)
+{
+    // Flag to distinguish between "omitted" (keep) vs "null" (remove)
+    public bool ApiTokenSpecified { get; init; }
+};
 
 // Preview Transform Models
 public record PreviewTransformRequestDto(

@@ -60,3 +60,17 @@ PK: (processId, idx)
 | updatedAt | TEXT | ISO |
 
 PK: (processId, version)
+
+### connector_tokens
+| column | type | notes |
+|---|---|---|
+| connectorId | TEXT PK | -> connectors.id (ON DELETE CASCADE) |
+| encVersion | INTEGER | 1 |
+| encAlg | TEXT | AES-256-GCM |
+| encNonce | TEXT | base64 |
+| encCiphertext | TEXT | base64 (ciphertext + tag) |
+| createdAt | TEXT | ISO |
+| updatedAt | TEXT | ISO |
+
+Nota: tokens **não** são armazenados em plaintext. Criptografia em repouso com chave fora do DB (ex.: `METRICS_SECRET_KEY`).
+

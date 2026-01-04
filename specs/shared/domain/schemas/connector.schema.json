@@ -38,6 +38,21 @@
       "maximum": 300,
       "default": 60
     },
+    "apiToken": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "maxLength": 4096,
+      "writeOnly": true,
+      "description": "API bearer token usado para autenticar contra a API externa do Connector. Omitido em update => mantém; null => remove; string => substitui. Nunca retornado."
+    },
+    "hasApiToken": {
+      "type": "boolean",
+      "readOnly": true,
+      "description": "Indica se existe token configurado para este Connector."
+    },
     "enabled": {
       "type": "boolean",
       "default": true
@@ -64,7 +79,8 @@
       "baseUrl": "https://dynatrace.example/api/v2",
       "authRef": "dynatrace-prod-token",
       "timeoutSeconds": 60,
-      "enabled": true
+      "enabled": true,
+      "hasApiToken": true
     }
   ]
 }

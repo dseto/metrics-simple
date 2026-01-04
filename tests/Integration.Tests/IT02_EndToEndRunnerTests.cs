@@ -78,7 +78,7 @@ public class IT02_EndToEndRunnerTests : IDisposable
         var authRef = "api_key_prod";
 
         // 1. Create Connector with baseUrl pointing to WireMock
-        var connector = new ConnectorDto(
+        var connector = new ConnectorCreateDto(
             Id: connectorId,
             Name: "E2E Test Connector",
             BaseUrl: _mockServer.Url!,
@@ -179,7 +179,7 @@ public class IT02_EndToEndRunnerTests : IDisposable
         var processId = "proc-auth-001";
         var authRef = "api_key_prod";
 
-        var connector = new ConnectorDto(
+        var connector = new ConnectorCreateDto(
             Id: connectorId,
             Name: "Auth Test Connector",
             BaseUrl: _mockServer.Url!,

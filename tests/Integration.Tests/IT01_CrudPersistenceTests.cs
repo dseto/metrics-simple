@@ -51,7 +51,7 @@ public class IT01_CrudPersistenceTests : IDisposable
     public async Task CreateConnector_ReturnsCreated_AndPersists()
     {
         // Arrange
-        var connector = new ConnectorDto(
+        var connector = new ConnectorCreateDto(
             Id: "conn-test-001",
             Name: "Test Connector",
             BaseUrl: "https://api.example.com",
@@ -83,7 +83,7 @@ public class IT01_CrudPersistenceTests : IDisposable
     public async Task CreateProcess_ReturnsCreated_AndPersists()
     {
         // Arrange: First create a connector
-        var connector = new ConnectorDto(
+        var connector = new ConnectorCreateDto(
             Id: "conn-proc-001",
             Name: "Test Connector for Process",
             BaseUrl: "https://api.example.com",
@@ -127,7 +127,7 @@ public class IT01_CrudPersistenceTests : IDisposable
     public async Task CreateProcessVersion_ReturnsCreated_AndPersists()
     {
         // Arrange: First create connector and process
-        var connector = new ConnectorDto(
+        var connector = new ConnectorCreateDto(
             Id: "conn-ver-001",
             Name: "Test Connector for Version",
             BaseUrl: "https://api.example.com",

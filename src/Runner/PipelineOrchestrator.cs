@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Metrics.Engine;
@@ -124,31 +125,83 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
             var authRef = connectorReader.GetString(1);
             var timeoutSeconds = connectorReader.GetInt32(2);
             connectorReader.Close();
+
+            // Load encrypted API token if exists (new: connector_tokens table)
+            string? apiToken = null;
+            var tokenCommand = connection.CreateCommand();
+            tokenCommand.CommandText = @"
+                SELECT encVersion, encAlg, encNonce, encCiphertext 
+                FROM connector_tokens 
+                WHERE connectorId = @connectorId";
+            tokenCommand.Parameters.AddWithValue("@connectorId", connectorId);
+
+            using var tokenReader = tokenCommand.ExecuteReader();
+            if (tokenReader.Read())
+            {
+                var encNonce = tokenReader.GetString(2);
+                var encCiphertext = tokenReader.GetString(3);
+                tokenReader.Close();
+
+                // Decrypt token using METRICS_SECRET_KEY
+                try
+                {
+                    var encryptionService = new TokenEncryptionService();
+                    apiToken = encryptionService.Decrypt(encNonce, encCiphertext);
+                    Log.Information("API token loaded for connector {ConnectorId}", connectorId);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    Log.Error("Failed to decrypt API token: {Error}", ex.Message);
+                    connection.Close();
+                    return new PipelineResult(40, $"Token decryption failed: {ex.Message}"); // SOURCE_ERROR
+                }
+                catch (CryptographicException ex)
+                {
+                    Log.Error("Failed to decrypt API token: {Error}", ex.Message);
+                    connection.Close();
+                    return new PipelineResult(40, $"Token decryption failed: {ex.Message}"); // SOURCE_ERROR
+                }
+            }
+            else
+            {
+                tokenReader.Close();
+            }
+
             connection.Close();
 
             // Step 2: Resolve secret via METRICS_SECRET__<authRef> env var (normative for integration tests)
-            Log.Information("Step 2: Resolving secret for authRef={AuthRef}", authRef);
-            var secretEnvKey = $"METRICS_SECRET__{authRef}";
-            var secret = Environment.GetEnvironmentVariable(secretEnvKey);
-            
-            // Fallback: try secrets file if env var not set
-            if (string.IsNullOrEmpty(secret) && !string.IsNullOrEmpty(context.SecretsPath))
-            {
-                try
-                {
-                    var secretConfig = _secretsProvider.LoadSecrets(context.SecretsPath);
-                    secret = _secretsProvider.GetConnectorSecret(secretConfig, connectorId, "token");
-                }
-                catch
-                {
-                    // Ignore file-based secrets errors
-                }
-            }
+            // NOTE: This is the legacy authRef secret, kept for backward compatibility
+            // If apiToken exists (from connector_tokens table), it takes precedence
+            Log.Information("Step 2: Resolving auth for authRef={AuthRef}", authRef);
+            string? authTokenToUse = apiToken; // Prefer encrypted API token
 
-            if (string.IsNullOrEmpty(secret))
+            // Fallback to legacy secret resolution if no API token
+            if (string.IsNullOrEmpty(authTokenToUse))
             {
-                Log.Error("Secret not found for authRef={AuthRef} (env: {EnvKey})", authRef, secretEnvKey);
-                return new PipelineResult(40, $"Secret not found for authRef: {authRef}"); // SOURCE_ERROR per spec
+                var secretEnvKey = $"METRICS_SECRET__{authRef}";
+                var secret = Environment.GetEnvironmentVariable(secretEnvKey);
+                
+                // Fallback: try secrets file if env var not set
+                if (string.IsNullOrEmpty(secret) && !string.IsNullOrEmpty(context.SecretsPath))
+                {
+                    try
+                    {
+                        var secretConfig = _secretsProvider.LoadSecrets(context.SecretsPath);
+                        secret = _secretsProvider.GetConnectorSecret(secretConfig, connectorId, "token");
+                    }
+                    catch
+                    {
+                        // Ignore file-based secrets errors
+                    }
+                }
+
+                if (string.IsNullOrEmpty(secret))
+                {
+                    Log.Error("Auth not found for authRef={AuthRef} (env: {EnvKey})", authRef, secretEnvKey);
+                    return new PipelineResult(40, $"Auth not found for authRef: {authRef}"); // SOURCE_ERROR per spec
+                }
+
+                authTokenToUse = secret;
             }
 
             // Step 3: FetchSource - Fetch data from external API
@@ -163,7 +216,7 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
             JsonElement inputData;
             try
             {
-                inputData = await FetchExternalDataAsync(baseUrl, sourceRequest, secret, timeoutSeconds);
+                inputData = await FetchExternalDataAsync(baseUrl, sourceRequest, authTokenToUse, timeoutSeconds);
             }
             catch (HttpRequestException ex)
             {

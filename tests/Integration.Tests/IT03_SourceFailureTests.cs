@@ -65,7 +65,7 @@ public class IT03_SourceFailureTests : IDisposable
         var processId = "proc-fail-001";
         var authRef = "api_key_prod";
 
-        var connector = new ConnectorDto(
+        var connector = new ConnectorCreateDto(
             Id: connectorId,
             Name: "Fail Test Connector",
             BaseUrl: _mockServer.Url!,
@@ -139,7 +139,7 @@ public class IT03_SourceFailureTests : IDisposable
         var processId = "proc-404-001";
         var authRef = "api_key_prod";
 
-        var connector = new ConnectorDto(
+        var connector = new ConnectorCreateDto(
             Id: connectorId,
             Name: "404 Test Connector",
             BaseUrl: _mockServer.Url!,
@@ -202,7 +202,7 @@ public class IT03_SourceFailureTests : IDisposable
         var processId = "proc-nosecret-001";
         var authRef = "missing_secret_key";  // This secret won't be set
 
-        var connector = new ConnectorDto(
+        var connector = new ConnectorCreateDto(
             Id: connectorId,
             Name: "No Secret Connector",
             BaseUrl: _mockServer.Url!,
@@ -254,7 +254,7 @@ public class IT03_SourceFailureTests : IDisposable
         var processId = "proc-disabled-001";
         var authRef = "api_key_prod";
 
-        var connector = new ConnectorDto(
+        var connector = new ConnectorCreateDto(
             Id: connectorId,
             Name: "Disabled Test Connector",
             BaseUrl: _mockServer.Url!,

@@ -66,8 +66,8 @@ Route: `/processes/new` (create) e `/processes/:id` (edit)
 ### Seção: Identificação
 | fieldId | path | Tipo UI | Componente | Obrigatório | Validações | Fonte | Mensagem de erro |
 |---|---|---|---|---:|---|---|---|
-| `processEditor.form.id` | `Process.id` | string | `MatInput` | sim (create) | trim; não permitir vazio | `processEditorState.model.id` | Campo obrigatório. |
-| `processEditor.form.name` | `Process.name` | string | `MatInput` | sim | trim; não permitir vazio | `processEditorState.model.name` | Campo obrigatório. |
+| `processEditor.form.id` | `Process.id` | string | `MatInput` | sim (create) | trim; regex: `^[a-z0-9-]+$`; min 3; max 64 | `processEditorState.model.id` | ID inválido. (apenas a-z, 0-9, -) |
+| `processEditor.form.name` | `Process.name` | string | `MatInput` | sim | trim; min 3; max 128 | `processEditorState.model.name` | Mín. 3, Máx. 128 caracteres. |
 | `processEditor.form.status` | `Process.status` | enum (`Draft|Active|Disabled`) | `MatSelect` | sim | default: `Draft` (create) | `processEditorState.model.status` | Campo obrigatório. |
 | `processEditor.form.connectorId` | `Process.connectorId` | string (lookup) | `MatSelect` (options=connectors) | sim | deve escolher 1 option | `processEditorState.model.connectorId` | Campo obrigatório. |
 
@@ -124,12 +124,12 @@ Route: `/processes/:id/versions/new` e `/processes/:id/versions/:version` (versi
 | fieldId | path | Tipo UI | Componente | Obrigatório | Validações | Fonte | Mensagem de erro |
 |---|---|---|---|---:|---|---|---|
 | `versionEditor.dsl.profile` | `ProcessVersion.dsl.profile` | enum (`jsonata|jmespath|custom`) | `MatSelect` | sim | default: `jsonata` | `model.dsl.profile` | Campo obrigatório. |
-| `versionEditor.dsl.text` | `ProcessVersion.dsl.text` | text | `MsJsonEditorLite` (plain text mode) | sim | trim; não permitir vazio | `model.dsl.text` | Campo obrigatório. |
+| `versionEditor.dsl.text` | `ProcessVersion.dsl.text` | text | `MsJsonEditorLite` (plain text mode) | sim | trim; min 1; max 20000 | `model.dsl.text` | Mín. 1, Máx. 20000 caracteres. |
 
 ### Seção: Output Schema (JSON)
 | fieldId | path | Tipo UI | Componente | Obrigatório | Validações | Fonte | Mensagem de erro |
 |---|---|---|---|---:|---|---|---|
-| `versionEditor.outputSchema` | `ProcessVersion.outputSchema` | json | `MsJsonEditorLite` | sim | parse JSON obrigatório | `model.outputSchema` | JSON inválido. Verifique a sintaxe. |
+| `versionEditor.outputSchema` | `ProcessVersion.outputSchema` | json | `MsJsonEditorLite` | sim | parse JSON obrigatório; min 1 propriedade | `model.outputSchema` | JSON inválido. Verifique a sintaxe. |
 
 ### Seção: Sample Input (JSON)
 | fieldId | path | Tipo UI | Componente | Obrigatório | Validações | Fonte | Mensagem de erro |
@@ -156,11 +156,12 @@ Route: `/connectors`
 ### Dialog: Create/Edit Connector
 | fieldId | path | Tipo UI | Componente | Obrigatório | Validações | Fonte | Mensagem de erro |
 |---|---|---|---|---:|---|---|---|
-| `connectors.dialog.id` | `Connector.id` | string | `MatInput` | sim (create) | trim; não permitir vazio | `connectorDraft.id` | Campo obrigatório. |
-| `connectors.dialog.name` | `Connector.name` | string | `MatInput` | sim | trim; não permitir vazio | `connectorDraft.name` | Campo obrigatório. |
+| `connectors.dialog.id` | `Connector.id` | string | `MatInput` | sim (create) | trim; regex: `^[a-z0-9-]+$`; min 3; max 64 | `connectorDraft.id` | ID inválido. (apenas a-z, 0-9, -) |
+| `connectors.dialog.name` | `Connector.name` | string | `MatInput` | sim | trim; min 3; max 128 | `connectorDraft.name` | Mín. 3, Máx. 128 caracteres. |
 | `connectors.dialog.baseUrl` | `Connector.baseUrl` | url | `MatInput` | sim | trim; validar URL (http/https) | `connectorDraft.baseUrl` | URL inválida. |
 | `connectors.dialog.authRef` | `Connector.authRef` | string | `MatInput` | sim | trim; não permitir vazio | `connectorDraft.authRef` | Campo obrigatório. |
 | `connectors.dialog.timeoutSeconds` | `Connector.timeoutSeconds` | number | `MatInput` (type=number) | sim | inteiro; min 1 | `connectorDraft.timeoutSeconds` | O timeout deve ser maior ou igual a 1. |
+| `connectors.dialog.apiToken` | `Connector.apiToken` | string | `MatInput` (type=password) | não | trim; min 1; max 4096 (se preenchido) | `connectorDraft.apiToken` | Mín. 1, Máx. 4096 caracteres. |
 
 ---
 
@@ -171,8 +172,8 @@ Route: `/preview`
 |---|---|---|---|---:|---|---|---|
 | `preview.inputJson` | `ui.preview.inputJson` | json | `MsJsonEditorLite` | sim | parse JSON obrigatório | `previewContainer.inputJson` | JSON inválido. Verifique a sintaxe. |
 | `preview.dsl.profile` | `ui.preview.dsl.profile` | enum | `MatSelect` | sim | default `jsonata` | `previewContainer.dsl.profile` | Campo obrigatório. |
-| `preview.dsl.text` | `ui.preview.dsl.text` | text | `MsJsonEditorLite` | sim | não vazio | `previewContainer.dsl.text` | Campo obrigatório. |
-| `preview.outputSchema` | `ui.preview.outputSchema` | json | `MsJsonEditorLite` | sim | parse JSON obrigatório | `previewContainer.outputSchema` | JSON inválido. Verifique a sintaxe. |
+| `preview.dsl.text` | `ui.preview.dsl.text` | text | `MsJsonEditorLite` | sim | trim; min 1; max 20000 | `previewContainer.dsl.text` | Mín. 1, Máx. 20000 caracteres. |
+| `preview.outputSchema` | `ui.preview.outputSchema` | json | `MsJsonEditorLite` | sim | parse JSON obrigatório; min 1 propriedade | `previewContainer.outputSchema` | JSON inválido. Verifique a sintaxe. |
 | `preview.run` | `ui.preview.run` | action | `MatButton` | — | exige validação OK | `previewContainer` | — |
 
 ---

@@ -122,7 +122,26 @@ public record ConnectorDto(
     string Name,
     string BaseUrl,
     string AuthRef,
-    int TimeoutSeconds
+    int TimeoutSeconds,
+    bool? HasApiToken = null
+);
+
+public record ConnectorCreateDto(
+    string Id,
+    string Name,
+    string BaseUrl,
+    string AuthRef,
+    int TimeoutSeconds,
+    string? ApiToken = null
+);
+
+public record ConnectorUpdateDto(
+    string Name,
+    string BaseUrl,
+    string AuthRef,
+    int TimeoutSeconds,
+    string? ApiToken = null,
+    bool ApiTokenSpecified = false
 );
 
 public record ProcessDto(
