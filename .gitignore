@@ -55,3 +55,11 @@ nunit-*.xml
 
 # Local environment file (should never be committed)
 .env
+
+# Database files (generated at runtime, never commit)
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+src/Api/config/*.db
+src/Api/config/*.backup
