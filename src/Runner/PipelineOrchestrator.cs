@@ -108,10 +108,10 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
                 return new PipelineResult(30, "Process version is disabled"); // DISABLED
             }
 
-            // Load Connector
+            // Load Connector (v1.2.0 schema - no authRef, with authType)
             var connectorCommand = connection.CreateCommand();
             connectorCommand.CommandText = @"
-                SELECT baseUrl, authRef, timeoutSeconds FROM Connector WHERE id = @connectorId";
+                SELECT baseUrl, timeoutSeconds, authType, authConfigJson FROM Connector WHERE id = @connectorId";
             connectorCommand.Parameters.AddWithValue("@connectorId", connectorId);
 
             using var connectorReader = connectorCommand.ExecuteReader();
@@ -122,86 +122,211 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
             }
 
             var baseUrl = connectorReader.GetString(0);
-            var authRef = connectorReader.GetString(1);
-            var timeoutSeconds = connectorReader.GetInt32(2);
+            var timeoutSeconds = connectorReader.GetInt32(1);
+            var authType = connectorReader.IsDBNull(2) ? "NONE" : connectorReader.GetString(2);
+            var authConfigJson = connectorReader.IsDBNull(3) ? null : connectorReader.GetString(3);
             connectorReader.Close();
 
-            // Load encrypted API token if exists (new: connector_tokens table)
-            string? apiToken = null;
-            var tokenCommand = connection.CreateCommand();
-            tokenCommand.CommandText = @"
-                SELECT encVersion, encAlg, encNonce, encCiphertext 
-                FROM connector_tokens 
-                WHERE connectorId = @connectorId";
-            tokenCommand.Parameters.AddWithValue("@connectorId", connectorId);
+            // Load encrypted secrets from connector_secrets table (v1.2.0+)
+            string? bearerToken = null;
+            string? apiKeyValue = null;
+            string? basicPassword = null;
+            string? apiKeyName = null;
+            string? apiKeyLocation = null;
+            string? basicUsername = null;
 
-            using var tokenReader = tokenCommand.ExecuteReader();
-            if (tokenReader.Read())
+            // Parse authConfig for non-secret fields
+            if (!string.IsNullOrEmpty(authConfigJson))
             {
-                var encNonce = tokenReader.GetString(2);
-                var encCiphertext = tokenReader.GetString(3);
-                tokenReader.Close();
-
-                // Decrypt token using METRICS_SECRET_KEY
                 try
                 {
-                    var encryptionService = new TokenEncryptionService();
-                    apiToken = encryptionService.Decrypt(encNonce, encCiphertext);
-                    Log.Information("API token loaded for connector {ConnectorId}", connectorId);
+                    var authConfig = JsonSerializer.Deserialize<AuthConfigData>(authConfigJson);
+                    apiKeyName = authConfig?.ApiKeyName;
+                    apiKeyLocation = authConfig?.ApiKeyLocation;
+                    basicUsername = authConfig?.BasicUsername;
                 }
-                catch (InvalidOperationException ex)
+                catch (Exception ex)
                 {
-                    Log.Error("Failed to decrypt API token: {Error}", ex.Message);
-                    connection.Close();
-                    return new PipelineResult(40, $"Token decryption failed: {ex.Message}"); // SOURCE_ERROR
-                }
-                catch (CryptographicException ex)
-                {
-                    Log.Error("Failed to decrypt API token: {Error}", ex.Message);
-                    connection.Close();
-                    return new PipelineResult(40, $"Token decryption failed: {ex.Message}"); // SOURCE_ERROR
+                    Log.Warning("Failed to parse authConfigJson: {Error}", ex.Message);
                 }
             }
-            else
+
+            // Load all secrets for this connector
+            var secretsCommand = connection.CreateCommand();
+            secretsCommand.CommandText = @"
+                SELECT secretKind, encNonce, encCiphertext 
+                FROM connector_secrets 
+                WHERE connectorId = @connectorId";
+            secretsCommand.Parameters.AddWithValue("@connectorId", connectorId);
+
+            using var secretsReader = secretsCommand.ExecuteReader();
+            var encryptionService = new TokenEncryptionService();
+            
+            while (secretsReader.Read())
             {
-                tokenReader.Close();
+                var secretKind = secretsReader.GetString(0);
+                var encNonce = secretsReader.GetString(1);
+                var encCiphertext = secretsReader.GetString(2);
+
+                try
+                {
+                    var decryptedValue = encryptionService.Decrypt(encNonce, encCiphertext);
+                    switch (secretKind)
+                    {
+                        case "BEARER_TOKEN":
+                            bearerToken = decryptedValue;
+                            break;
+                        case "API_KEY_VALUE":
+                            apiKeyValue = decryptedValue;
+                            break;
+                        case "BASIC_PASSWORD":
+                            basicPassword = decryptedValue;
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("Failed to decrypt secret {SecretKind}: {Error}", secretKind, ex.Message);
+                }
+            }
+            secretsReader.Close();
+
+            // Fallback: Try loading from legacy connector_tokens table
+            if (string.IsNullOrEmpty(bearerToken))
+            {
+                var tokenCommand = connection.CreateCommand();
+                tokenCommand.CommandText = @"
+                    SELECT encVersion, encAlg, encNonce, encCiphertext 
+                    FROM connector_tokens 
+                    WHERE connectorId = @connectorId";
+                tokenCommand.Parameters.AddWithValue("@connectorId", connectorId);
+
+                using var tokenReader = tokenCommand.ExecuteReader();
+                if (tokenReader.Read())
+                {
+                    var encNonce = tokenReader.GetString(2);
+                    var encCiphertext = tokenReader.GetString(3);
+                    tokenReader.Close();
+
+                    try
+                    {
+                        bearerToken = encryptionService.Decrypt(encNonce, encCiphertext);
+                        Log.Information("Legacy API token loaded for connector {ConnectorId}", connectorId);
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        Log.Error("Failed to decrypt legacy API token: {Error}", ex.Message);
+                        connection.Close();
+                        return new PipelineResult(40, $"Token decryption failed: {ex.Message}"); // SOURCE_ERROR
+                    }
+                    catch (CryptographicException ex)
+                    {
+                        Log.Error("Failed to decrypt legacy API token: {Error}", ex.Message);
+                        connection.Close();
+                        return new PipelineResult(40, $"Token decryption failed: {ex.Message}"); // SOURCE_ERROR
+                    }
+                }
+                else
+                {
+                    tokenReader.Close();
+                }
             }
 
             connection.Close();
 
-            // Step 2: Resolve secret via METRICS_SECRET__<authRef> env var (normative for integration tests)
-            // NOTE: This is the legacy authRef secret, kept for backward compatibility
-            // If apiToken exists (from connector_tokens table), it takes precedence
-            Log.Information("Step 2: Resolving auth for authRef={AuthRef}", authRef);
-            string? authTokenToUse = apiToken; // Prefer encrypted API token
+            // Step 2: Resolve auth based on authType (v1.2.0+)
+            Log.Information("Step 2: Resolving auth for authType={AuthType}", authType);
 
-            // Fallback to legacy secret resolution if no API token
-            if (string.IsNullOrEmpty(authTokenToUse))
+            AuthResolution auth;
+            switch (authType.ToUpperInvariant())
             {
-                var secretEnvKey = $"METRICS_SECRET__{authRef}";
-                var secret = Environment.GetEnvironmentVariable(secretEnvKey);
-                
-                // Fallback: try secrets file if env var not set
-                if (string.IsNullOrEmpty(secret) && !string.IsNullOrEmpty(context.SecretsPath))
-                {
-                    try
-                    {
-                        var secretConfig = _secretsProvider.LoadSecrets(context.SecretsPath);
-                        secret = _secretsProvider.GetConnectorSecret(secretConfig, connectorId, "token");
-                    }
-                    catch
-                    {
-                        // Ignore file-based secrets errors
-                    }
-                }
+                case "NONE":
+                    auth = new AuthResolution("NONE");
+                    break;
 
-                if (string.IsNullOrEmpty(secret))
-                {
-                    Log.Error("Auth not found for authRef={AuthRef} (env: {EnvKey})", authRef, secretEnvKey);
-                    return new PipelineResult(40, $"Auth not found for authRef: {authRef}"); // SOURCE_ERROR per spec
-                }
+                case "BEARER":
+                    // Try encrypted secret first, then env var fallback
+                    var resolvedBearer = bearerToken;
+                    if (string.IsNullOrEmpty(resolvedBearer))
+                    {
+                        var secretEnvKey = $"METRICS_SECRET__{connectorId}__BEARER";
+                        resolvedBearer = Environment.GetEnvironmentVariable(secretEnvKey);
+                        
+                        // Fallback: try secrets file
+                        if (string.IsNullOrEmpty(resolvedBearer) && !string.IsNullOrEmpty(context.SecretsPath))
+                        {
+                            try
+                            {
+                                var secretConfig = _secretsProvider.LoadSecrets(context.SecretsPath);
+                                resolvedBearer = _secretsProvider.GetConnectorSecret(secretConfig, connectorId, "token");
+                            }
+                            catch
+                            {
+                                // Ignore file-based secrets errors
+                            }
+                        }
+                    }
 
-                authTokenToUse = secret;
+                    if (string.IsNullOrEmpty(resolvedBearer))
+                    {
+                        Log.Error("Bearer token not found for connector {ConnectorId}", connectorId);
+                        return new PipelineResult(40, $"Bearer token not found for connector: {connectorId}"); // SOURCE_ERROR
+                    }
+                    auth = new AuthResolution("BEARER", BearerToken: resolvedBearer);
+                    break;
+
+                case "API_KEY":
+                    // Try encrypted secret first, then env var fallback
+                    var resolvedApiKey = apiKeyValue;
+                    if (string.IsNullOrEmpty(resolvedApiKey))
+                    {
+                        var secretEnvKey = $"METRICS_SECRET__{connectorId}__API_KEY";
+                        resolvedApiKey = Environment.GetEnvironmentVariable(secretEnvKey);
+                    }
+
+                    if (string.IsNullOrEmpty(resolvedApiKey))
+                    {
+                        Log.Error("API key not found for connector {ConnectorId}", connectorId);
+                        return new PipelineResult(40, $"API key not found for connector: {connectorId}"); // SOURCE_ERROR
+                    }
+                    if (string.IsNullOrEmpty(apiKeyName))
+                    {
+                        Log.Error("API key name not configured for connector {ConnectorId}", connectorId);
+                        return new PipelineResult(10, $"API key name not configured for connector: {connectorId}"); // VALIDATION_ERROR
+                    }
+                    auth = new AuthResolution("API_KEY", 
+                        ApiKeyValue: resolvedApiKey, 
+                        ApiKeyName: apiKeyName, 
+                        ApiKeyLocation: apiKeyLocation ?? "HEADER");
+                    break;
+
+                case "BASIC":
+                    // Try encrypted secret first, then env var fallback
+                    var resolvedBasicPassword = basicPassword;
+                    if (string.IsNullOrEmpty(resolvedBasicPassword))
+                    {
+                        var secretEnvKey = $"METRICS_SECRET__{connectorId}__BASIC";
+                        resolvedBasicPassword = Environment.GetEnvironmentVariable(secretEnvKey);
+                    }
+
+                    if (string.IsNullOrEmpty(resolvedBasicPassword))
+                    {
+                        Log.Error("Basic password not found for connector {ConnectorId}", connectorId);
+                        return new PipelineResult(40, $"Basic password not found for connector: {connectorId}"); // SOURCE_ERROR
+                    }
+                    if (string.IsNullOrEmpty(basicUsername))
+                    {
+                        Log.Error("Basic username not configured for connector {ConnectorId}", connectorId);
+                        return new PipelineResult(10, $"Basic username not configured for connector: {connectorId}"); // VALIDATION_ERROR
+                    }
+                    auth = new AuthResolution("BASIC", 
+                        BasicUsername: basicUsername, 
+                        BasicPassword: resolvedBasicPassword);
+                    break;
+
+                default:
+                    Log.Error("Unknown auth type {AuthType} for connector {ConnectorId}", authType, connectorId);
+                    return new PipelineResult(10, $"Unknown auth type: {authType}"); // VALIDATION_ERROR
             }
 
             // Step 3: FetchSource - Fetch data from external API
@@ -216,7 +341,7 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
             JsonElement inputData;
             try
             {
-                inputData = await FetchExternalDataAsync(baseUrl, sourceRequest, authTokenToUse, timeoutSeconds);
+                inputData = await FetchExternalDataAsync(baseUrl, sourceRequest, auth, timeoutSeconds);
             }
             catch (HttpRequestException ex)
             {
@@ -287,7 +412,7 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
         }
     }
 
-    private async Task<JsonElement> FetchExternalDataAsync(string baseUrl, SourceRequestDto request, string authToken, int timeoutSeconds)
+    private async Task<JsonElement> FetchExternalDataAsync(string baseUrl, SourceRequestDto request, AuthResolution auth, int timeoutSeconds)
     {
         // Use injected HttpClient or create new one
         var client = _httpClient ?? new HttpClient();
@@ -300,22 +425,71 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
                 client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
             }
             client.DefaultRequestHeaders.Clear();
-            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {authToken}");
+
+            // Apply auth based on type
+            switch (auth.AuthType.ToUpperInvariant())
+            {
+                case "BEARER":
+                    client.DefaultRequestHeaders.Add("Authorization", $"Bearer {auth.BearerToken}");
+                    break;
+
+                case "BASIC":
+                    var basicCredentials = Convert.ToBase64String(
+                        System.Text.Encoding.UTF8.GetBytes($"{auth.BasicUsername}:{auth.BasicPassword}"));
+                    client.DefaultRequestHeaders.Add("Authorization", $"Basic {basicCredentials}");
+                    break;
+
+                case "API_KEY":
+                    // API key is injected later based on location (header or query)
+                    break;
+
+                case "NONE":
+                    // No auth
+                    break;
+            }
 
             // Construct full URL: baseUrl + path + queryParams
             var url = baseUrl.TrimEnd('/') + "/" + request.Path.TrimStart('/');
-            if (request.QueryParams != null && request.QueryParams.Count > 0)
+            var queryParams = request.QueryParams != null 
+                ? new Dictionary<string, string>(request.QueryParams) 
+                : new Dictionary<string, string>();
+
+            // For API_KEY with QUERY location, add to query params
+            if (auth.AuthType.ToUpperInvariant() == "API_KEY" && 
+                auth.ApiKeyLocation?.ToUpperInvariant() == "QUERY" &&
+                !string.IsNullOrEmpty(auth.ApiKeyName))
             {
-                var queryString = string.Join("&", request.QueryParams.Select(kv => $"{kv.Key}={Uri.EscapeDataString(kv.Value)}"));
+                queryParams[auth.ApiKeyName] = auth.ApiKeyValue!;
+            }
+            // For API_KEY with HEADER location (default), add to headers
+            else if (auth.AuthType.ToUpperInvariant() == "API_KEY" && 
+                     !string.IsNullOrEmpty(auth.ApiKeyName))
+            {
+                client.DefaultRequestHeaders.Add(auth.ApiKeyName, auth.ApiKeyValue);
+            }
+
+            if (queryParams.Count > 0)
+            {
+                var queryString = string.Join("&", queryParams.Select(kv => $"{kv.Key}={Uri.EscapeDataString(kv.Value)}"));
                 url = $"{url}?{queryString}";
             }
 
-            Log.Information("FetchSource: {Method} {Url}", request.Method, url);
+            Log.Information("FetchSource: {Method} {Url} (auth={AuthType})", request.Method, url, auth.AuthType);
+
+            HttpContent? httpContent = null;
+            if (!string.IsNullOrEmpty(request.Body))
+            {
+                httpContent = new StringContent(request.Body, System.Text.Encoding.UTF8, 
+                    request.ContentType ?? "application/json");
+            }
 
             HttpResponseMessage response = request.Method.ToUpper() switch
             {
                 "GET" => await client.GetAsync(url),
-                "POST" => await client.PostAsync(url, null),
+                "POST" => await client.PostAsync(url, httpContent),
+                "PUT" => await client.PutAsync(url, httpContent),
+                "PATCH" => await client.PatchAsync(url, httpContent),
+                "DELETE" => await client.DeleteAsync(url),
                 _ => throw new NotSupportedException($"HTTP method {request.Method} is not supported")
             };
 
@@ -358,5 +532,30 @@ public record SourceRequestDto(
     string Method,
     string Path,
     Dictionary<string, string>? Headers = null,
-    Dictionary<string, string>? QueryParams = null
+    Dictionary<string, string>? QueryParams = null,
+    string? Body = null,
+    string? ContentType = null
+);
+
+/// <summary>
+/// Configuration data for non-secret auth fields stored in authConfigJson
+/// </summary>
+public record AuthConfigData
+{
+    public string? ApiKeyName { get; init; }
+    public string? ApiKeyLocation { get; init; }
+    public string? BasicUsername { get; init; }
+}
+
+/// <summary>
+/// Auth resolution result for passing to FetchExternalDataAsync
+/// </summary>
+public record AuthResolution(
+    string AuthType,
+    string? BearerToken = null,
+    string? ApiKeyValue = null,
+    string? ApiKeyName = null,
+    string? ApiKeyLocation = null,
+    string? BasicUsername = null,
+    string? BasicPassword = null
 );

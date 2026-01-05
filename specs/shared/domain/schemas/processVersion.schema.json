@@ -67,6 +67,34 @@
               "type": "null"
             }
           ]
+        },
+        "body": {
+          "description": "Request body opcional para métodos que suportam payload (POST/PUT/etc). Aceita JSON ou string.",
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": true
+            },
+            {
+              "type": "array"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "contentType": {
+          "type": "string",
+          "description": "Override opcional do Content-Type (ex.: application/json). Se body for objeto/array e contentType não for definido, usar application/json."
         }
       }
     },

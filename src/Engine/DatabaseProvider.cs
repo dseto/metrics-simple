@@ -38,7 +38,7 @@ public sealed class DatabaseProvider : IDatabaseProvider
             )";
         command.ExecuteNonQuery();
 
-        // Create ProcessVersion table
+        // Create ProcessVersion table (with body and contentType support)
         command.CommandText = @"
             CREATE TABLE IF NOT EXISTS ProcessVersion (
                 processId TEXT NOT NULL,
@@ -49,20 +49,25 @@ public sealed class DatabaseProvider : IDatabaseProvider
                 dslText TEXT NOT NULL,
                 outputSchemaJson TEXT NOT NULL,
                 sampleInputJson TEXT,
+                bodyText TEXT,
+                contentType TEXT,
                 createdAt TEXT NOT NULL,
                 PRIMARY KEY (processId, version),
                 FOREIGN KEY (processId) REFERENCES Process(id)
             )";
         command.ExecuteNonQuery();
 
-        // Create Connector table
+        // Create Connector table (v1.2.0 schema - no authRef, with authType/authConfigJson/requestDefaultsJson)
         command.CommandText = @"
             CREATE TABLE IF NOT EXISTS Connector (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
                 baseUrl TEXT NOT NULL,
+                authType TEXT NOT NULL DEFAULT 'NONE',
+                authConfigJson TEXT,
+                requestDefaultsJson TEXT,
                 timeoutSeconds INTEGER NOT NULL,
-                authRef TEXT NOT NULL,
+                enabled INTEGER NOT NULL DEFAULT 1,
                 createdAt TEXT NOT NULL,
                 updatedAt TEXT NOT NULL
             )";
@@ -103,7 +108,7 @@ public sealed class DatabaseProvider : IDatabaseProvider
         command.CommandText = @"CREATE INDEX IF NOT EXISTS idx_auth_user_roles_role ON auth_user_roles(role)";
         command.ExecuteNonQuery();
 
-        // Create connector_tokens table (encrypted API tokens)
+        // Create connector_tokens table (LEGACY - encrypted API tokens, 1:1 per connector)
         command.CommandText = @"
             CREATE TABLE IF NOT EXISTS connector_tokens (
                 connectorId   TEXT PRIMARY KEY,
@@ -118,6 +123,25 @@ public sealed class DatabaseProvider : IDatabaseProvider
         command.ExecuteNonQuery();
 
         command.CommandText = @"CREATE INDEX IF NOT EXISTS idx_connector_tokens_connector ON connector_tokens(connectorId)";
+        command.ExecuteNonQuery();
+
+        // Create connector_secrets table (v1.2.0 - N:1 per connector, supports BEARER_TOKEN|API_KEY_VALUE|BASIC_PASSWORD)
+        command.CommandText = @"
+            CREATE TABLE IF NOT EXISTS connector_secrets (
+                connectorId   TEXT NOT NULL,
+                secretKind    TEXT NOT NULL,
+                encVersion    INTEGER NOT NULL,
+                encAlg        TEXT NOT NULL,
+                encNonce      TEXT NOT NULL,
+                encCiphertext TEXT NOT NULL,
+                createdAt     TEXT NOT NULL,
+                updatedAt     TEXT NOT NULL,
+                PRIMARY KEY (connectorId, secretKind),
+                FOREIGN KEY (connectorId) REFERENCES Connector(id) ON DELETE CASCADE
+            )";
+        command.ExecuteNonQuery();
+
+        command.CommandText = @"CREATE INDEX IF NOT EXISTS idx_connector_secrets_connectorId ON connector_secrets(connectorId)";
         command.ExecuteNonQuery();
 
         connection.Close();

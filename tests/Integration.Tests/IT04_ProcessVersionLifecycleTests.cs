@@ -44,7 +44,6 @@ public class IT04_ProcessVersionLifecycleTests : IDisposable
             Id: connectorId,
             Name: $"Test Connector {connectorId}",
             BaseUrl: "https://api.example.com",
-            AuthRef: "test_token",
             TimeoutSeconds: 30
         );
         var connResp = await _client.PostAsJsonAsync("/api/v1/connectors", connector);

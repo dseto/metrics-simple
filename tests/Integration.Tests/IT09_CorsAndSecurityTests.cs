@@ -58,7 +58,6 @@ public class IT09_CorsAndSecurityTests : IDisposable
             Id: "security-test-001",
             Name: "Security Test Connector",
             BaseUrl: "https://api.example.com",
-            AuthRef: "token",
             TimeoutSeconds: 30,
             ApiToken: "sensitive-api-key-requires-encryption"
         );
@@ -90,7 +89,6 @@ public class IT09_CorsAndSecurityTests : IDisposable
             Id: "key-test-002",
             Name: "Key Test",
             BaseUrl: "https://api.example.com",
-            AuthRef: "token",
             TimeoutSeconds: 30,
             ApiToken: "token-requires-encryption"
         );
@@ -139,7 +137,6 @@ public class IT09_CorsAndSecurityTests : IDisposable
             Id: "cors-test-001",
             Name: "CORS Test",
             BaseUrl: "https://api.example.com",
-            AuthRef: "token",
             TimeoutSeconds: 30,
             ApiToken: "test-token"
         );
@@ -178,7 +175,6 @@ public class IT09_CorsAndSecurityTests : IDisposable
             Id: "hgbrasil-weather",
             Name: "HGBrasil Weather API",
             BaseUrl: "https://api.hgbrasil.com/weather",
-            AuthRef: "hgbrasil",
             TimeoutSeconds: 60,
             ApiToken: "f110205d" // This will be encrypted
         );
@@ -228,7 +224,6 @@ public class IT09_CorsAndSecurityTests : IDisposable
             Id: "cors-list-test",
             Name: "List Test",
             BaseUrl: "https://api.example.com",
-            AuthRef: "token",
             TimeoutSeconds: 30,
             ApiToken: "test-token"
         );
@@ -320,7 +315,7 @@ public class IT09_CorsAndSecurityTests : IDisposable
         {
             "simple-token",
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", // JWT-like
-            "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", // OpenRouter format
+            "sk-or-v1-" + new string('a', 64), // OpenRouter format (fake key)
             new string('x', 4096), // Max length
             "token-with-special-chars-!@#$%^&*()"
         };
@@ -331,7 +326,6 @@ public class IT09_CorsAndSecurityTests : IDisposable
                 Id: $"token-format-test-{Guid.NewGuid().ToString().Substring(0, 8)}",
                 Name: "Token Format Test",
                 BaseUrl: "https://api.example.com",
-                AuthRef: "token",
                 TimeoutSeconds: 30,
                 ApiToken: token
             );
@@ -362,7 +356,6 @@ public class IT09_CorsAndSecurityTests : IDisposable
                 Id: $"concurrent-test-{i}",
                 Name: $"Concurrent Test {i}",
                 BaseUrl: "https://api.example.com",
-                AuthRef: $"token-{i}",
                 TimeoutSeconds: 30,
                 ApiToken: $"secret-token-{i}"
             );

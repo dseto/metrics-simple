@@ -121,27 +121,58 @@ public record ConnectorDto(
     string Id,
     string Name,
     string BaseUrl,
-    string AuthRef,
     int TimeoutSeconds,
-    bool? HasApiToken = null
+    bool Enabled = true,
+    string AuthType = "NONE",
+    string? ApiKeyLocation = null,
+    string? ApiKeyName = null,
+    string? BasicUsername = null,
+    RequestDefaultsDto? RequestDefaults = null,
+    bool? HasApiToken = null,
+    bool? HasApiKey = null,
+    bool? HasBasicPassword = null
 );
 
 public record ConnectorCreateDto(
     string Id,
     string Name,
     string BaseUrl,
-    string AuthRef,
     int TimeoutSeconds,
-    string? ApiToken = null
+    bool Enabled = true,
+    string AuthType = "NONE",
+    string? ApiKeyLocation = null,
+    string? ApiKeyName = null,
+    string? ApiKeyValue = null,
+    string? BasicUsername = null,
+    string? BasicPassword = null,
+    string? ApiToken = null,
+    RequestDefaultsDto? RequestDefaults = null
 );
 
 public record ConnectorUpdateDto(
     string Name,
     string BaseUrl,
-    string AuthRef,
     int TimeoutSeconds,
+    bool Enabled = true,
+    string AuthType = "NONE",
+    string? ApiKeyLocation = null,
+    string? ApiKeyName = null,
+    string? ApiKeyValue = null,
+    string? BasicUsername = null,
+    string? BasicPassword = null,
     string? ApiToken = null,
-    bool ApiTokenSpecified = false
+    RequestDefaultsDto? RequestDefaults = null,
+    bool ApiTokenSpecified = false,
+    bool ApiKeySpecified = false,
+    bool BasicPasswordSpecified = false
+);
+
+public record RequestDefaultsDto(
+    string? Method = null,
+    Dictionary<string, string>? Headers = null,
+    Dictionary<string, string>? QueryParams = null,
+    object? Body = null,
+    string? ContentType = null
 );
 
 public record ProcessDto(
@@ -180,7 +211,9 @@ public record SourceRequestDto(
     string Method,
     string Path,
     Dictionary<string, string>? Headers = null,
-    Dictionary<string, string>? QueryParams = null
+    Dictionary<string, string>? QueryParams = null,
+    object? Body = null,
+    string? ContentType = null
 );
 
 public record DslDto(

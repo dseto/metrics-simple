@@ -30,13 +30,14 @@ Todo componente “data-driven” deve suportar:
 ### UiError
 ```ts
 type UiError = {
-  title: string;           // curto, ex.: "Falha ao salvar"
-  message: string;         // explicação legível
-  code?: string;           // opcional (HTTP_500, NETWORK_TIMEOUT, etc)
-  details?: string;        // texto para copiar (stack/response)
-  requestId?: string;      // se API retornar
-  canRetry?: boolean;      // default true
-};
+	  title: string;           // curto, ex.: "Falha ao salvar"
+	  message: string;         // explicação legível
+	  code?: string;           // opcional (HTTP_500, NETWORK_TIMEOUT, etc)
+	  details?: string;        // texto para copiar (stack/response)
+	  requestId?: string;      // se API retornar
+	  canRetry?: boolean;      // default true
+	  severity?: 'error'|'warning'; // default 'error'
+	};
 ```
 
 ### JSON Editors
@@ -111,12 +112,15 @@ type ActionButton = {
 ## 2) Data / Lists
 
 ### 2.1 MsStatusChip
-**Props**
-- `status: 'Draft'|'Active'|'Disabled'`
-- `size?: 'sm'|'md'` (default md)
-
-**Rendering**
-- Usa Material Chip com cor tonal consistente (não hardcode de cor: usar theme roles)
+	**Props**
+	- `status: 'Draft'|'Active'|'Disabled'`
+	- `size?: 'sm'|'md'` (default md)
+	
+	**Rendering**
+	- Usa Material Chip com cor tonal consistente (não hardcode de cor: usar theme roles)
+	- **A11y**: `data-testid="status-chip.<status.toLowerCase()>"`.
+	
+	---
 
 ---
 
@@ -163,7 +167,7 @@ type ConnectorRow = {
   id: string;
   name: string;
   baseUrl: string;
-  authRef: string;
+  REMOVIDO_REMOVIDO_authRef: string;
   timeoutSeconds: number;
 };
 ```
@@ -351,14 +355,22 @@ type PreviewPrefill = {
 ## 5) Feedback
 
 ### 5.1 MsErrorBanner
-**Props**
-- `error: UiError`
-- `visible: boolean`
-
-**Events**
-- `onRetry?()`
-- `onCopyDetails()`
-- `onDismiss()`
+	**Props**
+	- `error: UiError`
+	- `visible: boolean`
+	
+	**Events**
+	- `onRetry?()`
+	- `onCopyDetails()`
+	- `onDismiss()`
+	
+	**UX**
+	- O banner deve usar cores de severidade (vermelho para erro, amarelo para warning).
+	- O ícone deve ser `error` (vermelho) ou `warning` (amarelo).
+	- O botão de retry só deve ser exibido se `error.canRetry` for `true`.
+	- **A11y**: `aria-live="assertive"` para garantir que o erro seja lido por leitores de tela.
+	
+	---
 
 ---
 
@@ -425,3 +437,12 @@ Recomendado criar testes unitários (não E2E) para:
 - Actions: Generate (calls API), Apply (emit suggested dsl+schema)
 - States: idle/loading/success/error/disabled
 - Uses Material 3: filled text fields, tonal button, progress indicator, banners.
+
+
+---
+
+## Delta 1.2.0 — Connector fields (UI)
+- Remover qualquer input/validação de `REMOVIDO_authRef`.
+- Adicionar seletor `authType` e campos por tipo.
+- Não exibir segredos; apenas indicadores `hasApiToken/hasApiKey/hasBasicPassword`.
+- Adicionar botão Delete em cada linha, chamando DELETE `/api/v1/connectors/{id}` com tratamento 409.

@@ -63,14 +63,14 @@ public class IT03_SourceFailureTests : IDisposable
         // Create configuration via API
         var connectorId = "conn-fail-001";
         var processId = "proc-fail-001";
-        var authRef = "api_key_prod";
 
+        // Use authType=NONE since we want to test HTTP error handling, not auth
         var connector = new ConnectorCreateDto(
             Id: connectorId,
             Name: "Fail Test Connector",
             BaseUrl: _mockServer.Url!,
-            AuthRef: authRef,
-            TimeoutSeconds: 30
+            TimeoutSeconds: 30,
+            AuthType: "NONE"
         );
         var connResponse = await _client.PostAsJsonAsync("/api/v1/connectors", connector);
         connResponse.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -107,7 +107,7 @@ public class IT03_SourceFailureTests : IDisposable
         await _client.PostAsJsonAsync($"/api/v1/processes/{processId}/versions", version);
 
         // Act: Execute Runner CLI
-        var runnerResult = await RunRunnerProcessAsync(processId, "1", _outputPath, _dbPath, authRef);
+        var runnerResult = await RunRunnerProcessAsync(processId, "1", _outputPath, _dbPath);
 
         // Assert: Exit code should be 40 (SOURCE_ERROR) per cli-contract.md
         runnerResult.ExitCode.Should().Be(40, 
@@ -137,14 +137,13 @@ public class IT03_SourceFailureTests : IDisposable
 
         var connectorId = "conn-404-001";
         var processId = "proc-404-001";
-        var authRef = "api_key_prod";
 
         var connector = new ConnectorCreateDto(
             Id: connectorId,
             Name: "404 Test Connector",
             BaseUrl: _mockServer.Url!,
-            AuthRef: authRef,
-            TimeoutSeconds: 30
+            TimeoutSeconds: 30,
+            AuthType: "NONE"
         );
         await _client.PostAsJsonAsync("/api/v1/connectors", connector);
 
@@ -179,7 +178,7 @@ public class IT03_SourceFailureTests : IDisposable
         await _client.PostAsJsonAsync($"/api/v1/processes/{processId}/versions", version);
 
         // Act
-        var runnerResult = await RunRunnerProcessAsync(processId, "1", _outputPath, _dbPath, authRef);
+        var runnerResult = await RunRunnerProcessAsync(processId, "1", _outputPath, _dbPath);
 
         // Assert: Exit code 40 (SOURCE_ERROR)
         runnerResult.ExitCode.Should().Be(40, "Runner should exit with 40 (SOURCE_ERROR) when source returns 404");
@@ -188,7 +187,7 @@ public class IT03_SourceFailureTests : IDisposable
     [Fact]
     public async Task Runner_WhenSecretNotFound_ExitsWith40_SourceError()
     {
-        // Arrange: Create config but DON'T set the secret env var
+        // Arrange: Create config with BEARER auth but DON'T provide the token
         var inputJson = TestFixtures.GetHostsCpuInputJson();
         _mockServer
             .Given(Request.Create()
@@ -200,14 +199,14 @@ public class IT03_SourceFailureTests : IDisposable
 
         var connectorId = "conn-nosecret-001";
         var processId = "proc-nosecret-001";
-        var authRef = "missing_secret_key";  // This secret won't be set
 
+        // Create connector with BEARER authType but NO apiToken - this will cause secret not found
         var connector = new ConnectorCreateDto(
             Id: connectorId,
             Name: "No Secret Connector",
             BaseUrl: _mockServer.Url!,
-            AuthRef: authRef,
-            TimeoutSeconds: 30
+            TimeoutSeconds: 30,
+            AuthType: "BEARER"  // BEARER auth without token = secret not found
         );
         await _client.PostAsJsonAsync("/api/v1/connectors", connector);
 
@@ -252,14 +251,13 @@ public class IT03_SourceFailureTests : IDisposable
         // Arrange: Create config with DISABLED version
         var connectorId = "conn-disabled-001";
         var processId = "proc-disabled-001";
-        var authRef = "api_key_prod";
 
         var connector = new ConnectorCreateDto(
             Id: connectorId,
             Name: "Disabled Test Connector",
             BaseUrl: _mockServer.Url!,
-            AuthRef: authRef,
-            TimeoutSeconds: 30
+            TimeoutSeconds: 30,
+            AuthType: "NONE"
         );
         await _client.PostAsJsonAsync("/api/v1/connectors", connector);
 
@@ -291,7 +289,7 @@ public class IT03_SourceFailureTests : IDisposable
         await _client.PostAsJsonAsync($"/api/v1/processes/{processId}/versions", version);
 
         // Act
-        var runnerResult = await RunRunnerProcessAsync(processId, "1", _outputPath, _dbPath, authRef);
+        var runnerResult = await RunRunnerProcessAsync(processId, "1", _outputPath, _dbPath);
 
         // Assert: Exit code 30 (DISABLED) per cli-contract.md
         runnerResult.ExitCode.Should().Be(30, 
@@ -303,10 +301,9 @@ public class IT03_SourceFailureTests : IDisposable
     {
         // Arrange: Don't create any config - just run with non-existent process
         var processId = "proc-nonexistent";
-        var authRef = "api_key_prod";
 
         // Act
-        var runnerResult = await RunRunnerProcessAsync(processId, "1", _outputPath, _dbPath, authRef);
+        var runnerResult = await RunRunnerProcessAsync(processId, "1", _outputPath, _dbPath);
 
         // Assert: Exit code 20 (NOT_FOUND) per cli-contract.md
         runnerResult.ExitCode.Should().Be(20, 
@@ -317,8 +314,7 @@ public class IT03_SourceFailureTests : IDisposable
         string processId, 
         string version, 
         string outputPath, 
-        string dbPath,
-        string authRef)
+        string dbPath)
     {
         var runnerProjectPath = FindRunnerProjectPath();
         
@@ -334,7 +330,7 @@ public class IT03_SourceFailureTests : IDisposable
         };
 
         startInfo.Environment["METRICS_SQLITE_PATH"] = dbPath;
-        startInfo.Environment[$"METRICS_SECRET__{authRef}"] = "TEST_TOKEN";
+        // Note: Token is now stored encrypted in the database, no env var needed
 
         using var process = new Process { StartInfo = startInfo };
         process.Start();

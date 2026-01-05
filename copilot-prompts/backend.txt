@@ -1,0 +1,93 @@
+Você está implementando mudanças do Projeto Metrics conforme o spec deck (pasta specs/).
+
+META (Delta 1.2.0):
+1) Corrigir falhas encontradas nos testes:
+   - GET /api/v1/processes/{processId}/versions retornando 405 (endpoint não implementado): implementar.
+   - DELETE /api/v1/connectors/{connectorId} ausente: implementar.
+2) Remover completamente o campo authRef (backend, storage, validação e docs).
+3) Evoluir Connector para suportar:
+   - authType: NONE | BEARER | API_KEY | BASIC
+   - requestDefaults: method(GET|POST), headers, queryParams, body, contentType
+   - Secrets write-only com semântica *Specified (PUT)
+4) Evoluir ProcessVersion.sourceRequest para suportar body e contentType.
+5) Atualizar storage SQLite (migrations) e testes unitários + integrados.
+
+REGRAS DE SEGURANÇA (NORMATIVAS):
+- Secrets nunca são retornados pela API (writeOnly). Somente flags has*.
+- Em PUT: secret só muda quando *Specified=true.
+  - *Specified=true + valor string => atualizar/substituir
+  - *Specified=true + valor null => remover
+  - *Specified ausente/false => manter valor existente
+- Não armazenar secrets em plaintext. Usar AES-256-GCM com METRICS_SECRET_KEY (base64 32 bytes).
+
+ENDPOINTS OBRIGATÓRIOS:
+- GET /api/v1/processes/{processId}/versions
+  - 200 array ordenado por version asc
+  - 404 se process não existe
+  - nunca responder 405
+- DELETE /api/v1/connectors/{connectorId}
+  - 204 em sucesso
+  - 404 se não existe
+  - 409 CONNECTOR_IN_USE quando há referência em processos/versões
+
+RUNNER (composição de request):
+- Merge connector.requestDefaults + processVersion.sourceRequest:
+  - headers/query: defaults primeiro; version sobrescreve
+  - body/contentType: version vence; senão defaults
+- Auth injection ocorre após merge e NÃO pode sobrescrever headers/query explicitamente definidos:
+  - BEARER: Authorization: Bearer <token>
+  - API_KEY: injetar apiKeyName=apiKeyValue em header ou query conforme apiKeyLocation
+  - BASIC: Authorization: Basic base64(username:password)
+
+STORAGE (SQLite):
+- Implementar migration 003_connector_flex_and_process_body.sql conforme specs.
+- connectors: remover authRef; adicionar authType/authConfigJson/requestDefaultsJson
+- criar connector_secrets (connectorId, secretKind) e migrar legacy connector_tokens (quando existir)
+- process_versions: adicionar bodyText + contentType
+
+TESTES (obrigatórios):
+- Unit/Repository:
+  - migração cria tabelas/colunas esperadas
+  - CRUD connector_secrets + cascade delete
+- Integration/E2E:
+  - list versions (GET) retorna 200 ordenado
+  - delete connector retorna 204 e 409 em uso
+  - runner BEARER + (API_KEY ou BASIC)
+  - POST com body/contentType
+
+ARQUIVOS DE VERDADE (consulte e siga):
+- specs/shared/openapi/config-api.yaml
+- specs/shared/domain/schemas/connector.schema.json
+- specs/shared/domain/schemas/processVersion.schema.json
+- specs/backend/03-interfaces/api-behavior.md
+- specs/backend/04-execution/cli-contract.md
+- specs/backend/06-storage/sqlite-schema.md
+- specs/backend/06-storage/migrations/003_connector_flex_and_process_body.sql
+- specs/backend/09-testing/integration-tests.md
+- specs/backend/09-testing/repository-tests.md
+
+TESTES DE LLM (OBRIGATÓRIO):
+- NUNCA ignorar testes de LLM (IT05_RealLlmIntegrationTests.cs)
+- NUNCA usar Mock provider - usar chamadas REAIS ao OpenRouter
+- Usar [Fact] em vez de [SkippableFact]
+- Remover Skip.If() - testes devem rodar SEMPRE
+- API key está em .env (METRICS_OPENROUTER_API_KEY)
+- SEMPRE carregar .env antes de rodar testes:
+  ```powershell
+  .\scripts\load-env-and-test.ps1
+  # OU
+  .\scripts\load-env-and-test.ps1 -Build -IntegrationOnly
+  ```
+- Se teste falhar por API indisponível, registrar erro e FALHAR (não mock, não skip)
+
+VARIÁVEIS DE AMBIENTE (OBRIGATÓRIO):
+- METRICS_SECRET_KEY: para encriptação de tokens (está em .env)
+- METRICS_OPENROUTER_API_KEY: API key real do OpenRouter (está em .env)
+- SEMPRE carregar .env antes de testes/build via load-env-and-test.ps1
+
+ENTREGA:
+- Código implementado + testes verdes (INCLUINDO testes de LLM com API real)
+- Atualização de migrations/DDL e serviços/handlers
+- Sem referências a authRef no código
+- Testes de LLM NUNCA ignorados ou skipped
+- Testes de LLM usam API OpenRouter real (não mock)

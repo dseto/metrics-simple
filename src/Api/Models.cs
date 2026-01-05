@@ -40,7 +40,9 @@ public record SourceRequestDto(
     string Method,
     string Path,
     Dictionary<string, string>? Headers = null,
-    Dictionary<string, string>? QueryParams = null
+    Dictionary<string, string>? QueryParams = null,
+    object? Body = null,
+    string? ContentType = null
 );
 
 public record DslDto(
@@ -48,36 +50,79 @@ public record DslDto(
     string Text
 );
 
-// Connector Models
+// Connector Models - per connector.schema.json spec (no authRef)
 public record ConnectorDto(
     string Id,
     string Name,
     string BaseUrl,
-    string AuthRef,
     int TimeoutSeconds,
-    bool? HasApiToken = null  // Read-only: indicates if token exists (never returns actual token)
+    bool Enabled = true,
+    string AuthType = "NONE",  // NONE | BEARER | API_KEY | BASIC
+    // API_KEY config (non-secret)
+    string? ApiKeyLocation = null,  // HEADER | QUERY
+    string? ApiKeyName = null,
+    // BASIC config (non-secret)
+    string? BasicUsername = null,
+    // Request defaults
+    RequestDefaultsDto? RequestDefaults = null,
+    // Has* flags for secrets (read-only)
+    bool? HasApiToken = null,
+    bool? HasApiKey = null,
+    bool? HasBasicPassword = null
 );
 
 public record ConnectorCreateDto(
     string Id,
     string Name,
     string BaseUrl,
-    string AuthRef,
     int TimeoutSeconds,
-    string? ApiToken = null  // Write-only: optional API token (1..4096 chars if provided)
+    bool Enabled = true,
+    string AuthType = "NONE",  // NONE | BEARER | API_KEY | BASIC
+    // API_KEY config
+    string? ApiKeyLocation = null,
+    string? ApiKeyName = null,
+    string? ApiKeyValue = null,  // Write-only secret
+    // BASIC config
+    string? BasicUsername = null,
+    string? BasicPassword = null,  // Write-only secret
+    // BEARER token
+    string? ApiToken = null,  // Write-only: optional API token (1..4096 chars if provided)
+    // Request defaults
+    RequestDefaultsDto? RequestDefaults = null
 );
 
 public record ConnectorUpdateDto(
     string Name,
     string BaseUrl,
-    string AuthRef,
     int TimeoutSeconds,
-    string? ApiToken  // Write-only: null=remove, omitted=keep, string=replace
+    bool Enabled = true,
+    string AuthType = "NONE",
+    // API_KEY config
+    string? ApiKeyLocation = null,
+    string? ApiKeyName = null,
+    string? ApiKeyValue = null,
+    // BASIC config
+    string? BasicUsername = null,
+    string? BasicPassword = null,
+    // BEARER token
+    string? ApiToken = null,
+    // Request defaults
+    RequestDefaultsDto? RequestDefaults = null
 )
 {
-    // Flag to distinguish between "omitted" (keep) vs "null" (remove)
+    // Flags to distinguish between "omitted" (keep) vs "null" (remove)
     public bool ApiTokenSpecified { get; init; }
+    public bool ApiKeySpecified { get; init; }
+    public bool BasicPasswordSpecified { get; init; }
 };
+
+public record RequestDefaultsDto(
+    string? Method = null,  // GET | POST
+    Dictionary<string, string>? Headers = null,
+    Dictionary<string, string>? QueryParams = null,
+    object? Body = null,
+    string? ContentType = null
+);
 
 // Preview Transform Models
 public record PreviewTransformRequestDto(

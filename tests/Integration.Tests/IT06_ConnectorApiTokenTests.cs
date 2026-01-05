@@ -52,7 +52,6 @@ public class IT06_ConnectorApiTokenTests : IDisposable
             Id: "conn-token-001",
             Name: "Test Connector with Token",
             BaseUrl: "https://api.example.com",
-            AuthRef: "api_key_test",
             TimeoutSeconds: 30,
             ApiToken: "secret-token-12345"
         );
@@ -88,7 +87,6 @@ public class IT06_ConnectorApiTokenTests : IDisposable
             Id: "conn-no-token-001",
             Name: "Test Connector without Token",
             BaseUrl: "https://api.example.com",
-            AuthRef: "api_key_test",
             TimeoutSeconds: 30,
             ApiToken: null
         );
@@ -111,7 +109,6 @@ public class IT06_ConnectorApiTokenTests : IDisposable
             Id: "conn-invalid-001",
             Name: "Invalid Token",
             BaseUrl: "https://api.example.com",
-            AuthRef: "api_key_test",
             TimeoutSeconds: 30,
             ApiToken: "" // Empty string (invalid)
         );
@@ -131,7 +128,6 @@ public class IT06_ConnectorApiTokenTests : IDisposable
             Id: "conn-invalid-002",
             Name: "Invalid Token",
             BaseUrl: "https://api.example.com",
-            AuthRef: "api_key_test",
             TimeoutSeconds: 30,
             ApiToken: new string('x', 4097) // 4097 chars (invalid)
         );
@@ -151,7 +147,6 @@ public class IT06_ConnectorApiTokenTests : IDisposable
             Id: "conn-update-001",
             Name: "Original Name",
             BaseUrl: "https://api.example.com",
-            AuthRef: "api_key_test",
             TimeoutSeconds: 30,
             ApiToken: "original-secret-token"
         );
@@ -161,7 +156,6 @@ public class IT06_ConnectorApiTokenTests : IDisposable
         var updateDto = new ConnectorUpdateDto(
             Name: "Updated Name",
             BaseUrl: "https://api.example.com",
-            AuthRef: "api_key_test",
             TimeoutSeconds: 60,
             ApiToken: null,
             ApiTokenSpecified: false  // FALSE = omitted (keep existing)
@@ -185,7 +179,6 @@ public class IT06_ConnectorApiTokenTests : IDisposable
             Id: "conn-update-002",
             Name: "Original Name",
             BaseUrl: "https://api.example.com",
-            AuthRef: "api_key_test",
             TimeoutSeconds: 30,
             ApiToken: "original-secret-token"
         );
@@ -195,7 +188,6 @@ public class IT06_ConnectorApiTokenTests : IDisposable
         var updateDto = new ConnectorUpdateDto(
             Name: "Updated Name",
             BaseUrl: "https://api.example.com",
-            AuthRef: "api_key_test",
             TimeoutSeconds: 30,
             ApiToken: null,
             ApiTokenSpecified: true  // TRUE + null = remove
@@ -217,7 +209,6 @@ public class IT06_ConnectorApiTokenTests : IDisposable
             Id: "conn-update-003",
             Name: "Original Name",
             BaseUrl: "https://api.example.com",
-            AuthRef: "api_key_test",
             TimeoutSeconds: 30,
             ApiToken: "original-secret-token"
         );
@@ -227,7 +218,6 @@ public class IT06_ConnectorApiTokenTests : IDisposable
         var updateDto = new ConnectorUpdateDto(
             Name: "Updated Name",
             BaseUrl: "https://api.example.com",
-            AuthRef: "api_key_test",
             TimeoutSeconds: 30,
             ApiToken: "new-secret-token",
             ApiTokenSpecified: true  // TRUE + string = replace
@@ -249,7 +239,6 @@ public class IT06_ConnectorApiTokenTests : IDisposable
             Id: "conn-list-001",
             Name: "Connector 1",
             BaseUrl: "https://api1.example.com",
-            AuthRef: "api_key_1",
             TimeoutSeconds: 30,
             ApiToken: "secret-token-1"
         );
@@ -257,7 +246,6 @@ public class IT06_ConnectorApiTokenTests : IDisposable
             Id: "conn-list-002",
             Name: "Connector 2",
             BaseUrl: "https://api2.example.com",
-            AuthRef: "api_key_2",
             TimeoutSeconds: 30,
             ApiToken: null  // No token
         );
@@ -295,7 +283,6 @@ public class IT06_ConnectorApiTokenTests : IDisposable
             Id: "conn-update-invalid-001",
             Name: "Test Connector",
             BaseUrl: "https://api.example.com",
-            AuthRef: "api_key_test",
             TimeoutSeconds: 30,
             ApiToken: "valid-token"
         );
@@ -305,7 +292,6 @@ public class IT06_ConnectorApiTokenTests : IDisposable
         var updateDto = new ConnectorUpdateDto(
             Name: "Updated Name",
             BaseUrl: "https://api.example.com",
-            AuthRef: "api_key_test",
             TimeoutSeconds: 30,
             ApiToken: new string('x', 4097),
             ApiTokenSpecified: true

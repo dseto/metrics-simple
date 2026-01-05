@@ -5,9 +5,11 @@ namespace Metrics.Api;
 
 public interface IProcessVersionRepository
 {
+    Task<List<ProcessVersionDto>> GetAllVersionsAsync(string processId);
     Task<ProcessVersionDto?> GetVersionAsync(string processId, int version);
     Task<ProcessVersionDto> CreateVersionAsync(ProcessVersionDto version);
     Task<ProcessVersionDto?> UpdateVersionAsync(string processId, int version, ProcessVersionDto updated);
+    Task<bool> DeleteVersionAsync(string processId, int version);
 }
 
 public sealed class ProcessVersionRepository : IProcessVersionRepository
@@ -17,6 +19,49 @@ public sealed class ProcessVersionRepository : IProcessVersionRepository
     public ProcessVersionRepository(string dbPath)
     {
         _connectionString = $"Data Source={dbPath}";
+    }
+
+    public async Task<List<ProcessVersionDto>> GetAllVersionsAsync(string processId)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync();
+
+        var command = connection.CreateCommand();
+        command.CommandText = @"
+            SELECT processId, version, enabled, sourceRequestJson, dslProfile, dslText, outputSchemaJson, sampleInputJson
+            FROM ProcessVersion
+            WHERE processId = @processId
+            ORDER BY version ASC";
+        
+        command.Parameters.AddWithValue("@processId", processId);
+
+        var versions = new List<ProcessVersionDto>();
+        using var reader = await command.ExecuteReaderAsync();
+        
+        while (await reader.ReadAsync())
+        {
+            var sourceRequestJson = reader.GetString(3);
+            var dslProfile = reader.GetString(4);
+            var dslText = reader.GetString(5);
+            var outputSchemaJson = reader.GetString(6);
+            var sampleInputJson = reader.IsDBNull(7) ? null : reader.GetString(7);
+
+            var sourceRequest = JsonSerializer.Deserialize<SourceRequestDto>(sourceRequestJson)!;
+            var outputSchema = JsonSerializer.Deserialize<object>(outputSchemaJson)!;
+            var sampleInput = sampleInputJson != null ? JsonSerializer.Deserialize<object>(sampleInputJson) : null;
+
+            versions.Add(new ProcessVersionDto(
+                processId,
+                reader.GetInt32(1),
+                reader.GetBoolean(2),
+                sourceRequest,
+                new DslDto(dslProfile, dslText),
+                outputSchema,
+                sampleInput
+            ));
+        }
+
+        return versions;
     }
 
     public async Task<ProcessVersionDto?> GetVersionAsync(string processId, int version)
@@ -125,5 +170,19 @@ public sealed class ProcessVersionRepository : IProcessVersionRepository
 
         await command.ExecuteNonQueryAsync();
         return updated;
+    }
+
+    public async Task<bool> DeleteVersionAsync(string processId, int version)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync();
+
+        var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM ProcessVersion WHERE processId = @processId AND version = @version";
+        command.Parameters.AddWithValue("@processId", processId);
+        command.Parameters.AddWithValue("@version", version);
+
+        var rowsAffected = await command.ExecuteNonQueryAsync();
+        return rowsAffected > 0;
     }
 }

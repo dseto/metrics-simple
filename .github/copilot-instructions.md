@@ -15,6 +15,29 @@
 - NJsonSchema (schema validation)
 - Material Design 3 (frontend)
 
+## 🚫 Restrições de Configuração (PROIBIDO para o agente)
+
+**O agente NÃO PODE alterar:**
+1. **Modelo LLM** - Somente o usuário pode alterar o modelo configurado em:
+   - `src/Api/Program.cs` (campo `Model`)
+   - `src/Api/AI/AiModels.cs`
+   - Qualquer configuração de `AI:Model` em appsettings
+2. **API Keys** - CRÍTICO:
+   - **NUNCA hardcodear API keys no código fonte**
+   - **SEMPRE carregar de variáveis de ambiente (.env)**
+   - Nunca expor, logar ou modificar chaves de API reais
+   - Em testes, usar tokens fake/mock (não chaves reais)
+   - Exemplos de API keys que NÃO PODEM aparecer no código:
+     - `sk-or-v1-*` (OpenRouter)
+     - `sk-*` (OpenAI)
+     - Qualquer token com formato de API key real
+3. **Endpoints de LLM** - Somente usuário pode alterar `EndpointUrl`
+
+**Se o agente identificar problemas com o modelo LLM:**
+- Documentar o problema (padrão de erro, frequência)
+- Sugerir alternativas ao usuário
+- **NÃO alterar o modelo diretamente**
+
 ## Qualidade mínima (obrigatório)
 - Build deve passar (`dotnet build`)
 - Testes devem passar (`dotnet test`)

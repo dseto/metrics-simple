@@ -287,9 +287,17 @@ public class HttpOpenAiCompatibleProvider : IAiProvider
             if (schemaElement.ValueKind == JsonValueKind.String)
             {
                 var schemaString = schemaElement.GetString()!;
+                var originalSchemaString = schemaString;
                 
                 // Try to parse, and if it fails, attempt to fix common LLM mistakes
                 schemaString = TryFixMalformedJson(schemaString);
+                
+                // Log if repair was applied
+                if (schemaString != originalSchemaString)
+                {
+                    _logger.LogWarning("Applied JSON repair to outputSchema. Original length: {OriginalLength}, Fixed length: {FixedLength}",
+                        originalSchemaString.Length, schemaString.Length);
+                }
                 
                 _logger.LogDebug("Parsing outputSchema string: {SchemaString}", schemaString);
                 try
@@ -403,6 +411,9 @@ public class HttpOpenAiCompatibleProvider : IAiProvider
     /// Attempts to fix common LLM mistakes in JSON output:
     /// - Extra trailing braces (LLM sometimes adds extra } at the end)
     /// - Unbalanced braces
+    /// - "key"= instead of "key": (LLM confuses = with :)
+    /// - Duplicate quotes ""key"" instead of "key"
+    /// - Runaway quote sequences """"""""
     /// </summary>
     private static string TryFixMalformedJson(string json)
     {
@@ -422,7 +433,52 @@ public class HttpOpenAiCompatibleProvider : IAiProvider
             // Continue to fix attempts
         }
         
-        // Fix 1: Remove trailing extra closing braces
+        // Fix 1: Replace runaway quote sequences (common LLM hallucination)
+        // Pattern: 3+ consecutive quotes -> reduce to single quote
+        while (json.Contains("\"\"\""))
+        {
+            json = json.Replace("\"\"\"", "\"");
+        }
+        
+        // Fix 1b: Convert Python-style single quotes to JSON double quotes
+        // This handles LLMs that output {'key': 'value'} instead of {"key": "value"}
+        // Only apply if the string starts with { and uses single quotes
+        if (json.StartsWith("{") || json.StartsWith("["))
+        {
+            bool hasSingleQuotes = json.Contains("'");
+            bool hasDoubleQuotes = json.Contains("\"");
+            
+            // If we have single quotes but very few or no double quotes, convert
+            if (hasSingleQuotes && !hasDoubleQuotes)
+            {
+                json = json.Replace("'", "\"");
+            }
+        }
+        
+        // Fix 2: Replace "key"= with "key": (LLM sometimes uses = instead of :)
+        // Pattern: "word"= -> "word":
+        json = System.Text.RegularExpressions.Regex.Replace(
+            json,
+            "\"([a-zA-Z_][a-zA-Z0-9_]*)\"=",
+            "\"$1\":");
+        
+        // Fix 3: Replace {"" with {" (double quote at start of key after brace)
+        json = json.Replace("{\"\"", "{\"");
+        json = json.Replace(",\"\"", ",\"");
+        
+        // Fix 4: Replace ""} with "} (double quote at end of value before brace)
+        json = json.Replace("\"\"}", "\"}");
+        json = json.Replace("\"\"]", "\"]");
+        json = json.Replace("\"\",", "\",");
+        
+        // Fix 5: Truncate if there's garbage after a seemingly complete JSON
+        int lastValidEnd = FindBalancedJsonEnd(json);
+        if (lastValidEnd > 0 && lastValidEnd < json.Length - 1)
+        {
+            json = json[..(lastValidEnd + 1)];
+        }
+        
+        // Fix 6: Remove trailing extra closing braces
         // Count braces to find imbalance
         int openBraces = 0;
         int closeBraces = 0;
@@ -454,7 +510,6 @@ public class HttpOpenAiCompatibleProvider : IAiProvider
         int excessClosingBraces = closeBraces - openBraces;
         if (excessClosingBraces > 0)
         {
-            // Remove trailing } characters
             while (excessClosingBraces > 0 && json.EndsWith("}"))
             {
                 json = json[..^1].TrimEnd();
@@ -473,7 +528,83 @@ public class HttpOpenAiCompatibleProvider : IAiProvider
             }
         }
         
+        // Fix 7: If JSON is truncated (missing closing braces/brackets), try to complete it
+        // This happens when LLM output is cut off mid-stream
+        int missingBraces = openBraces - closeBraces;
+        int missingBrackets = openBrackets - closeBrackets;
+        
+        if (missingBraces > 0 || missingBrackets > 0)
+        {
+            // First, try to fix incomplete strings (truncated in middle of value)
+            // Count unescaped quotes
+            int quoteCount = 0;
+            prevChar = '\0';
+            foreach (var c in json)
+            {
+                if (c == '"' && prevChar != '\\')
+                    quoteCount++;
+                prevChar = c;
+            }
+            
+            // If odd number of quotes, add a closing quote
+            if (quoteCount % 2 != 0)
+            {
+                json += "\"";
+            }
+            
+            // Add missing closing brackets first (inner), then braces (outer)
+            for (int i = 0; i < missingBrackets; i++)
+            {
+                json += "]";
+            }
+            for (int i = 0; i < missingBraces; i++)
+            {
+                json += "}";
+            }
+        }
+        
         return json;
+    }
+    
+    /// <summary>
+    /// Finds the position of the last balanced closing brace/bracket in JSON.
+    /// Returns -1 if JSON structure is completely broken.
+    /// </summary>
+    private static int FindBalancedJsonEnd(string json)
+    {
+        int depth = 0;
+        bool inString = false;
+        char prevChar = '\0';
+        int lastBalancedPos = -1;
+        
+        for (int i = 0; i < json.Length; i++)
+        {
+            char c = json[i];
+            
+            if (c == '"' && prevChar != '\\')
+            {
+                inString = !inString;
+            }
+            else if (!inString)
+            {
+                if (c == '{' || c == '[')
+                {
+                    depth++;
+                }
+                else if (c == '}' || c == ']')
+                {
+                    depth--;
+                    if (depth == 0)
+                    {
+                        lastBalancedPos = i;
+                    }
+                }
+            }
+            
+            prevChar = c;
+        }
+        
+        return lastBalancedPos;
     }
 
     private string BuildSystemPrompt(DslGenerateRequest request)
@@ -481,7 +612,14 @@ public class HttpOpenAiCompatibleProvider : IAiProvider
         // Comprehensive system prompt with Jsonata dialect rules
         // These rules prevent common LLM mistakes when generating Jsonata
         return $$"""
-            You are a Jsonata DSL generator for data transformation. Generate ONLY valid Jsonata expressions.
+            You are a Jsonata DSL generator for data transformation.
+            
+            CRITICAL OUTPUT RULES:
+            - Generate ONLY valid Jsonata expressions
+            - NO markdown code blocks (no ```)
+            - NO explanations or comments outside JSON
+            - NO prefixes like "Here's the expression:"
+            - Output MUST be pure JSON matching the schema below
 
             ═══════════════════════════════════════════════════════════════════════════════
             CRITICAL JSONATA DIALECT RULES (STRICT - violations cause compilation errors)
@@ -510,6 +648,10 @@ public class HttpOpenAiCompatibleProvider : IAiProvider
             5. OBJECT CONSTRUCTION: Use curly braces with key: value.
                ✅ VALID:   users.{ "fullName": firstName & " " & lastName, "email": email }
                ✅ VALID:   { "total": $sum(items.price), "count": $count(items) }
+               ❌ INVALID: result.{ "key": value }          -- FORBIDDEN: "result." prefix before object
+               
+               If you need to wrap result, use: { "result": expression }
+               NOT: result.{ ... }
 
             6. REGEX with $match: Returns array with groups property.
                ✅ VALID:   $match(text, /Memory:\s*(\d+)MB/)[0].groups[0]

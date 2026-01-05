@@ -75,15 +75,15 @@ public class IT02_EndToEndRunnerTests : IDisposable
         // Create configuration via API
         var connectorId = "conn-e2e-001";
         var processId = "proc-e2e-001";
-        var authRef = "api_key_prod";
 
-        // 1. Create Connector with baseUrl pointing to WireMock
+        // 1. Create Connector with baseUrl pointing to WireMock + BEARER auth with apiToken
         var connector = new ConnectorCreateDto(
             Id: connectorId,
             Name: "E2E Test Connector",
             BaseUrl: _mockServer.Url!,
-            AuthRef: authRef,
-            TimeoutSeconds: 30
+            TimeoutSeconds: 30,
+            AuthType: "BEARER",
+            ApiToken: "TEST_TOKEN"
         );
         var connResponse = await _client.PostAsJsonAsync("/api/v1/connectors", connector);
         connResponse.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -123,8 +123,8 @@ public class IT02_EndToEndRunnerTests : IDisposable
         var verResponse = await _client.PostAsJsonAsync($"/api/v1/processes/{processId}/versions", version);
         verResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        // Act: Execute Runner CLI as a real process
-        var runnerResult = await RunRunnerProcessAsync(processId, "1", _outputPath, _dbPath, authRef);
+        // Act: Execute Runner CLI as a real process (no authRef needed - token is stored encrypted in DB)
+        var runnerResult = await RunRunnerProcessAsync(processId, "1", _outputPath, _dbPath);
 
         // Assert
         runnerResult.ExitCode.Should().Be(0, $"Runner should exit with 0. Stdout: {runnerResult.StdOut}, Stderr: {runnerResult.StdErr}");
@@ -177,14 +177,15 @@ public class IT02_EndToEndRunnerTests : IDisposable
         // Create configuration via API
         var connectorId = "conn-auth-001";
         var processId = "proc-auth-001";
-        var authRef = "api_key_prod";
 
+        // Create Connector with BEARER auth and apiToken
         var connector = new ConnectorCreateDto(
             Id: connectorId,
             Name: "Auth Test Connector",
             BaseUrl: _mockServer.Url!,
-            AuthRef: authRef,
-            TimeoutSeconds: 30
+            TimeoutSeconds: 30,
+            AuthType: "BEARER",
+            ApiToken: "TEST_TOKEN"
         );
         await _client.PostAsJsonAsync("/api/v1/connectors", connector);
 
@@ -219,8 +220,8 @@ public class IT02_EndToEndRunnerTests : IDisposable
         );
         await _client.PostAsJsonAsync($"/api/v1/processes/{processId}/versions", version);
 
-        // Act: Run with correct secret -> should succeed
-        var runnerResult = await RunRunnerProcessAsync(processId, "1", _outputPath, _dbPath, authRef);
+        // Act: Run with token stored in DB -> should succeed
+        var runnerResult = await RunRunnerProcessAsync(processId, "1", _outputPath, _dbPath);
 
         // Assert: Should succeed because we're passing the correct secret
         runnerResult.ExitCode.Should().Be(0, "Runner should succeed with correct auth token");
@@ -237,8 +238,7 @@ public class IT02_EndToEndRunnerTests : IDisposable
         string processId, 
         string version, 
         string outputPath, 
-        string dbPath,
-        string authRef)
+        string dbPath)
     {
         // Find the Runner project directory
         var runnerProjectPath = FindRunnerProjectPath();
@@ -256,7 +256,7 @@ public class IT02_EndToEndRunnerTests : IDisposable
 
         // Set environment variables for the runner process
         startInfo.Environment["METRICS_SQLITE_PATH"] = dbPath;
-        startInfo.Environment[$"METRICS_SECRET__{authRef}"] = "TEST_TOKEN";
+        // Note: Token is now stored encrypted in the database, no env var needed
 
         using var process = new Process { StartInfo = startInfo };
         process.Start();

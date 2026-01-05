@@ -7,13 +7,26 @@ Objetivo: especificar o client HTTP da UI (tipos, normalização, erros) para re
 ---
 
 ## Base URL e headers
-- Base URL: `/api`
+- Base URL: carregada via **RuntimeConfigService** (ex.: `config.json`), com fallback para `/api` quando aplicável.
+  - Exemplo: `apiBaseUrl = http://localhost:8080/api/v1`
 - Header padrão: `Content-Type: application/json`
-- Header opcional: `X-Correlation-Id` (propagar para troubleshooting)
+- Header **obrigatório**: `X-Correlation-Id` (UUID gerado pelo client para rastreamento)
 
 ---
 
 ## Tipos (DTOs)
+
+
+### Connector (extensão: API Token)
+- `apiToken`: write-only (string|null). Nunca vem no GET.
+- `hasApiToken`: read-only boolean para indicar presença.
+- `apiTokenSpecified`: write-only boolean necessário no PUT para distinguir omitido vs null.
+
+**Regra de envio (PUT)**
+- manter token: não enviar `apiToken` e não enviar `apiTokenSpecified`
+- remover: enviar `{ apiTokenSpecified: true, apiToken: null }`
+- substituir: enviar `{ apiTokenSpecified: true, apiToken: "<token>" }`
+
 > Derivados do OpenAPI em `specs/shared/openapi/config-api.yaml`.
 
 ### ProcessDto
@@ -64,7 +77,34 @@ type ConnectorDto = {
   id: string;
   name: string;
   baseUrl: string;
-  authRef: string;
+
+  // Delta 1.2.0
+  authType: 'NONE' | 'BEARER' | 'API_KEY' | 'BASIC';
+  apiKeyLocation?: 'HEADER' | 'QUERY';
+  apiKeyName?: string;
+  basicUsername?: string;
+
+  // secrets write-only (PUT semantics via *Specified)
+  apiToken?: string | null;
+  apiTokenSpecified?: boolean;
+  hasApiToken?: boolean;
+
+  apiKeyValue?: string | null;
+  apiKeySpecified?: boolean;
+  hasApiKey?: boolean;
+
+  basicPassword?: string | null;
+  basicPasswordSpecified?: boolean;
+  hasBasicPassword?: boolean;
+
+  requestDefaults?: {
+    method?: 'GET' | 'POST';
+    headers?: Record<string, string>;
+    queryParams?: Record<string, string>;
+    body?: any;
+    contentType?: string;
+  };
+
   timeoutSeconds: number;
   enabled?: boolean;
 };
@@ -130,10 +170,14 @@ type ApiError = {
 ## Normalização antes de enviar (client-side)
 
 ### Strings
-Aplicar `trim()` em:
-- `id`, `name`, `connectorId`, `baseUrl`, `authRef`, `path`
-
-Rejeitar string vazia após trim para campos obrigatórios.
+	Aplicar `trim()` em **todos** os campos de string antes de enviar para a API:
+	- `id`, `name`, `description`, `connectorId`, `baseUrl`, `path`, `tags[]`
+	
+	Rejeitar string vazia após trim para campos obrigatórios.
+	
+	### Key-Value Maps (headers, queryParams)
+	- Remover entradas onde a chave é vazia após `trim()`.
+	- Aplicar `trim()` nas chaves e valores restantes.
 
 ### sampleInput
 - A UI pode manter `sampleInputText` como texto (textarea).

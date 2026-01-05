@@ -55,7 +55,6 @@ public class IT01_CrudPersistenceTests : IDisposable
             Id: "conn-test-001",
             Name: "Test Connector",
             BaseUrl: "https://api.example.com",
-            AuthRef: "api_key_test",
             TimeoutSeconds: 30
         );
 
@@ -69,7 +68,6 @@ public class IT01_CrudPersistenceTests : IDisposable
         created!.Id.Should().Be(connector.Id);
         created.Name.Should().Be(connector.Name);
         created.BaseUrl.Should().Be(connector.BaseUrl);
-        created.AuthRef.Should().Be(connector.AuthRef);
         created.TimeoutSeconds.Should().Be(connector.TimeoutSeconds);
 
         // Verify persistence via GET
@@ -87,7 +85,6 @@ public class IT01_CrudPersistenceTests : IDisposable
             Id: "conn-proc-001",
             Name: "Test Connector for Process",
             BaseUrl: "https://api.example.com",
-            AuthRef: "api_key_test",
             TimeoutSeconds: 30
         );
         await _client.PostAsJsonAsync("/api/v1/connectors", connector);
@@ -131,7 +128,6 @@ public class IT01_CrudPersistenceTests : IDisposable
             Id: "conn-ver-001",
             Name: "Test Connector for Version",
             BaseUrl: "https://api.example.com",
-            AuthRef: "api_key_test",
             TimeoutSeconds: 30
         );
         await _client.PostAsJsonAsync("/api/v1/connectors", connector);
@@ -199,7 +195,6 @@ public class IT01_CrudPersistenceTests : IDisposable
             Id: "conn-full-001",
             Name: "Full Workflow Connector",
             BaseUrl: "https://api.example.com",
-            AuthRef: "api_key_prod",
             TimeoutSeconds: 30
         );
         var connResponse = await _client.PostAsJsonAsync("/api/v1/connectors", connector);

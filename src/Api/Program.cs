@@ -83,6 +83,7 @@ builder.Services.AddScoped<IProcessRepository>(_ => new ProcessRepository(dbPath
 builder.Services.AddScoped<IProcessVersionRepository>(_ => new ProcessVersionRepository(dbPath));
 builder.Services.AddScoped<IConnectorRepository>(_ => new ConnectorRepository(dbPath));
 builder.Services.AddScoped<IConnectorTokenRepository>(_ => new ConnectorTokenRepository(dbPath));
+builder.Services.AddScoped<IConnectorSecretsRepository>(_ => new ConnectorSecretsRepository(dbPath));
 builder.Services.AddScoped<IAuthUserRepository>(_ => new AuthUserRepository(dbPath));
 
 // Register Token Encryption Service (throws if METRICS_SECRET_KEY not set, but that's by design)
@@ -107,7 +108,7 @@ var aiConfig = builder.Configuration.GetSection("AI").Get<AiConfiguration>() ?? 
     Enabled = false,
     Provider = "HttpOpenAICompatible",
     EndpointUrl = "https://openrouter.ai/api/v1/chat/completions",
-    Model = "openai/gpt-oss-120b",
+    Model = "nousresearch/hermes-3-llama-3.1-405b",
     PromptVersion = "1.0.0",
     TimeoutSeconds = 30,
     MaxRetries = 1,
@@ -407,6 +408,11 @@ processGroup.MapDelete("/{id}", DeleteProcess)
 var versionGroup = v1.MapGroup("/processes/{processId}/versions")
     .WithTags("ProcessVersions");
 
+// GET - List all versions for a process
+versionGroup.MapGet("/", GetAllProcessVersions)
+    .WithName("ListProcessVersions")
+    .RequireAuthorization(AuthPolicies.Reader);
+
 // POST - Admin policy
 versionGroup.MapPost("/", CreateProcessVersion)
     .WithName("CreateProcessVersion")
@@ -420,6 +426,11 @@ versionGroup.MapGet("/{version}", GetProcessVersion)
 // PUT - Admin policy
 versionGroup.MapPut("/{version}", UpdateProcessVersion)
     .WithName("UpdateProcessVersion")
+    .RequireAuthorization(AuthPolicies.Admin);
+
+// DELETE - Admin policy
+versionGroup.MapDelete("/{version}", DeleteProcessVersion)
+    .WithName("DeleteProcessVersion")
     .RequireAuthorization(AuthPolicies.Admin);
 
 // Connector endpoints
@@ -444,6 +455,11 @@ connectorGroup.MapPost("/", CreateConnector)
 // PUT /{id} - Admin policy
 connectorGroup.MapPut("/{id}", UpdateConnector)
     .WithName("UpdateConnector")
+    .RequireAuthorization(AuthPolicies.Admin);
+
+// DELETE /{id} - Admin policy
+connectorGroup.MapDelete("/{id}", DeleteConnector)
+    .WithName("DeleteConnector")
     .RequireAuthorization(AuthPolicies.Admin);
 
 // Preview Transform endpoint - Reader policy (design-time operation)
@@ -529,6 +545,31 @@ async Task<IResult> UpdateProcessVersion(string processId, string version, Proce
     return Results.Ok(result);
 }
 
+async Task<IResult> GetAllProcessVersions(string processId, IProcessVersionRepository versionRepo, IProcessRepository processRepo)
+{
+    // Check if process exists first
+    var process = await processRepo.GetProcessByIdAsync(processId);
+    if (process == null)
+    {
+        return Results.NotFound(new { code = "PROCESS_NOT_FOUND", message = $"Process '{processId}' not found" });
+    }
+    
+    var versions = await versionRepo.GetAllVersionsAsync(processId);
+    return Results.Ok(versions);
+}
+
+async Task<IResult> DeleteProcessVersion(string processId, string version, IProcessVersionRepository repo)
+{
+    if (!int.TryParse(version, out var versionInt))
+        return Results.BadRequest(new { error = "Version must be an integer" });
+    
+    var deleted = await repo.DeleteVersionAsync(processId, versionInt);
+    if (!deleted)
+        return Results.NotFound();
+    
+    return Results.NoContent();
+}
+
 async Task<IResult> GetAllConnectors(IConnectorRepository repo)
 {
     var connectors = await repo.GetAllConnectorsAsync();
@@ -547,12 +588,12 @@ async Task<IResult> CreateConnector(
     ConnectorCreateDto connector,
     IConnectorRepository repo,
     ITokenEncryptionService encryptionService,
-    IConnectorTokenRepository tokenRepo,
+    IConnectorSecretsRepository secretsRepo,
     HttpContext httpContext)
 {
     try
     {
-        var created = await repo.CreateConnectorAsync(connector, encryptionService, tokenRepo);
+        var created = await repo.CreateConnectorAsync(connector, encryptionService, secretsRepo);
         return Results.Created($"/api/v1/connectors/{created.Id}", created);
     }
     catch (ArgumentException ex)
@@ -570,12 +611,12 @@ async Task<IResult> UpdateConnector(
     ConnectorUpdateDto connector,
     IConnectorRepository repo,
     ITokenEncryptionService encryptionService,
-    IConnectorTokenRepository tokenRepo,
+    IConnectorSecretsRepository secretsRepo,
     HttpContext httpContext)
 {
     try
     {
-        var updated = await repo.UpdateConnectorAsync(id, connector, encryptionService, tokenRepo);
+        var updated = await repo.UpdateConnectorAsync(id, connector, encryptionService, secretsRepo);
         return Results.Ok(updated);
     }
     catch (ArgumentException ex)
@@ -590,6 +631,26 @@ async Task<IResult> UpdateConnector(
     {
         return Results.Problem(ex.Message, statusCode: 500);
     }
+}
+
+async Task<IResult> DeleteConnector(string id, IConnectorRepository repo)
+{
+    // Check if connector is in use
+    var inUse = await repo.IsConnectorInUseAsync(id);
+    if (inUse)
+    {
+        return Results.Conflict(new { code = "CONNECTOR_IN_USE", message = "Connector is in use by one or more processes." });
+    }
+    
+    // Check if connector exists
+    var connector = await repo.GetConnectorByIdAsync(id);
+    if (connector == null)
+    {
+        return Results.NotFound();
+    }
+    
+    await repo.DeleteConnectorAsync(id);
+    return Results.NoContent();
 }
 
 async Task<IResult> PreviewTransform(PreviewTransformRequestDto request, EngineService engine)

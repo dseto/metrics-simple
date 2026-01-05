@@ -1,8 +1,19 @@
 {
   "id": "dynatrace-prod",
   "name": "Dynatrace - PROD",
-  "baseUrl": "https://dynatrace.example/api/v2",
-  "authRef": "dynatrace-prod-token",
+  "baseUrl": "https://dynatrace.example.com/api",
+  "authType": "BEARER",
+  "apiToken": "<redacted>",
+  "apiTokenSpecified": true,
   "timeoutSeconds": 60,
-  "enabled": true
+  "enabled": true,
+  "requestDefaults": {
+    "method": "GET",
+    "headers": {
+      "Accept": "application/json"
+    },
+    "queryParams": {
+      "format": "json"
+    }
+  }
 }

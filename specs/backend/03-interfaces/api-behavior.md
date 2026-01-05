@@ -63,33 +63,29 @@ Erros (mínimo):
 
 ### GET /connectors
 - Ordenação: `id` ascendente
-- Retorna `hasApiToken: boolean` para cada Connector
-- **Nunca** retorna o valor do token (`apiToken`)
-
-### GET /connectors/{connectorId}
-- Retorna `hasApiToken: boolean`
-- **Nunca** retorna o valor do token (`apiToken`)
-- 404 connectorId não encontrado
 
 ### POST /connectors
-- Aceita `apiToken` opcional no payload
-- Validação `apiToken` (quando presente e não-null): tamanho 1..4096
 - 409 id duplicado
 - 400 baseUrl inválida
-- 400 apiToken inválido (tamanho)
-- 500 se `METRICS_SECRET_KEY` estiver ausente e for necessário persistir token
-
-### PUT /connectors/{connectorId}
-- Semântica de update para `apiToken`:
-  - **omitido** => mantém token atual
-  - **string** => substitui token
-  - **null** => remove token
-- Validação `apiToken` (quando presente e não-null): tamanho 1..4096
-- 404 connectorId não encontrado
-- 400 apiToken inválido (tamanho)
-- 500 se `METRICS_SECRET_KEY` estiver ausente e for necessário criptografar/persistir token
 
 ---
+
+
+### API Token (encrypted) — comportamento observável
+- `apiToken` é **write-only**:
+  - nunca é retornado em GET
+  - nunca deve ser logado
+  - `hasApiToken` indica somente presença/ausência
+- Validação:
+  - `apiToken` quando string: `minLength=1`, `maxLength=4096` (strings vazias => 400)
+- Semântica de update (PUT `/connectors/{id}`):
+  - `apiTokenSpecified` ausente/false => manter token existente (campo ignorado)
+  - `apiTokenSpecified=true` + `apiToken=null` => remover token
+  - `apiTokenSpecified=true` + `apiToken=string` => substituir token
+- Precedência de autenticação (FetchSource):
+  - se existir token: Runner injeta `Authorization: Bearer <token>`
+  - REMOVIDO_REMOVIDO_authRef continua existindo para compatibilidade, mas o token tem precedência para `Authorization`
+
 ## Preview
 
 ### POST /preview/transform
@@ -104,3 +100,35 @@ Erros (mínimo):
 ## Idempotência (mínimo)
 - POST não é idempotente
 - PUT é idempotente (mesmo payload -> mesmo estado)
+
+
+---
+
+## Delta 1.2.0 — Connectors Flex / Process Versions / Delete Connector
+
+### GET /processes/{processId}/versions
+- Endpoint **obrigatório**: o frontend utiliza este GET para listar versões.
+- Resposta 200: array de `ProcessVersion` ordenado por `version asc`.
+- 404: processo inexistente.
+- Backend **não pode** responder 405.
+
+### DELETE /connectors/{connectorId}
+- 204: removido.
+- 404: não existe.
+- 409: connector em uso por um ou mais processos (regra de domínio).
+
+### Autenticação do Connector
+Campo `authType`:
+- NONE: sem auth.
+- BEARER: injeta `Authorization: Bearer <apiToken>` quando `hasApiToken=true`.
+- API_KEY: injeta `apiKeyName=apiKeyValue` em header ou query conforme `apiKeyLocation`.
+- BASIC: injeta `Authorization: Basic base64(username:password)`.
+
+Regras:
+- O runner injeta auth **após** o merge de headers/query/body.
+- Não sobrescrever header/query explicitamente definido na versão.
+
+### Defaults de request (connector.requestDefaults)
+- `headers` e `queryParams`: merge (defaults primeiro; version sobrescreve).
+- `body` e `contentType`: version vence; senão defaults.
+- Se body for objeto/array e contentType não estiver definido, usar `application/json`.

@@ -95,12 +95,11 @@ public class IT05_RealLlmIntegrationTests : IAsyncLifetime
     ///   3. Output validates against schema
     /// 
     /// FAILS if: LLM returns invalid DSL or DSL doesn't execute correctly.
-    /// SKIPS if: No API key configured.
+    /// NEVER SKIP: Always runs with mock LLM or real API key if configured.
     /// </summary>
-    [SkippableFact]
+    [Fact]
     public async Task IT05_01_RealLlmGenerateValidCpuDsl()
     {
-        Skip.If(!_shouldRun, "Real LLM tests require API key. Set METRICS_OPENROUTER_API_KEY or OPENROUTER_API_KEY environment variable.");
 
         // Input: raw CPU metrics (0.0-1.0 scale)
         var sampleInput = new
@@ -222,11 +221,11 @@ public class IT05_RealLlmIntegrationTests : IAsyncLifetime
     /// Expected: LLM generates DSL that parses text and extracts values
     /// 
     /// FAILS if: Output doesn't match expected extracted values.
+    /// NEVER SKIP: Always runs with mock LLM or real API key if configured.
     /// </summary>
-    [SkippableFact]
+    [Fact]
     public async Task IT05_02_RealLlmExtractFromText()
     {
-        Skip.If(!_shouldRun, "Real LLM tests require API key. Set METRICS_OPENROUTER_API_KEY or OPENROUTER_API_KEY environment variable.");
 
         // Input: log entries with inline metrics in text
         var sampleInput = new
@@ -338,11 +337,11 @@ public class IT05_RealLlmIntegrationTests : IAsyncLifetime
     /// Some LLM responses may generate invalid Jsonata that cannot be repaired.
     /// In such cases, the API correctly returns 502 Bad Gateway.
     /// This test accepts both 200 OK (if DSL is valid) and 502 (if repair fails).
+    /// NEVER SKIP: Always runs with mock LLM or real API key if configured.
     /// </summary>
-    [SkippableFact(Timeout = 300000)] // 5 min timeout for LLM calls
+    [Fact(Timeout = 300000)] // 5 min timeout for LLM calls
     public async Task IT05_03_RealLlmRenameAndFilter()
     {
-        Skip.If(!_shouldRun, "Real LLM tests require API key. Set METRICS_OPENROUTER_API_KEY or OPENROUTER_API_KEY environment variable.");
 
         // Input: user records with mixed fields
         var sampleInput = new
@@ -456,11 +455,11 @@ public class IT05_RealLlmIntegrationTests : IAsyncLifetime
     /// Expected: Sum, average, and other aggregations are correct
     /// 
     /// FAILS if: Calculations are wrong or DSL doesn't execute.
+    /// NEVER SKIP: Always runs with mock LLM or real API key if configured.
     /// </summary>
-    [SkippableFact]
+    [Fact]
     public async Task IT05_04_RealLlmMathAggregation()
     {
-        Skip.If(!_shouldRun, "Real LLM tests require API key. Set METRICS_OPENROUTER_API_KEY or OPENROUTER_API_KEY environment variable.");
 
         var sampleInput = new
         {

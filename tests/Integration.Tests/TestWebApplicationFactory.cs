@@ -20,6 +20,15 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         _dbPath = dbPath;
         _disableAuth = disableAuth;
         
+        // CRITICAL: Clear any system environment variables FIRST
+        // This ensures .env file is always the source of truth and prevents conflicts
+        // with stale/old API keys that might be set in the PowerShell session
+        Environment.SetEnvironmentVariable("METRICS_OPENROUTER_API_KEY", null);
+        Environment.SetEnvironmentVariable("OPENROUTER_API_KEY", null);
+        
+        // Load .env file FIRST to get METRICS_OPENROUTER_API_KEY and other vars
+        LoadEnvFile();
+        
         // Set environment variables BEFORE creating the client
         // because Program.cs reads configuration during startup
         Environment.SetEnvironmentVariable("METRICS_SQLITE_PATH", _dbPath);
@@ -42,34 +51,79 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         }
     }
 
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    /// <summary>
+    /// Load .env file into environment variables.
+    /// This is called before the WebApplicationFactory initializes Program.cs.
+    /// </summary>
+    private void LoadEnvFile()
     {
-        // Load API key from appsettings.Development.json and set as env var
-        // so Program.cs can use it when initializing the AI provider
-        try
+        // List of possible paths to .env file (from various working directories)
+        var possiblePaths = new[]
         {
-            var basePath = Path.Combine(Directory.GetCurrentDirectory(), "src", "Api");
-            var devConfigPath = Path.Combine(basePath, "appsettings.Development.json");
-            if (File.Exists(devConfigPath))
+            // From bin/Debug/net10.0/ -> solution root
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", ".env"),
+            // From solution root (when running from IDE)
+            Path.Combine(Directory.GetCurrentDirectory(), ".env"),
+            // From tests/Integration.Tests/ -> solution root
+            Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", ".env"),
+            // Absolute path fallback
+            @"C:\Projetos\metrics-simple\.env"
+        };
+        
+        string? envPath = null;
+        foreach (var path in possiblePaths)
+        {
+            var fullPath = Path.GetFullPath(path);
+            if (File.Exists(fullPath))
             {
-                var jsonText = File.ReadAllText(devConfigPath);
-                var doc = System.Text.Json.JsonDocument.Parse(jsonText);
-                if (doc.RootElement.TryGetProperty("AI", out var aiSection) &&
-                    aiSection.TryGetProperty("ApiKey", out var apiKeyElement) &&
-                    apiKeyElement.ValueKind == System.Text.Json.JsonValueKind.String)
+                envPath = fullPath;
+                break;
+            }
+        }
+        
+        if (envPath != null && File.Exists(envPath))
+        {
+            try
+            {
+                foreach (var line in File.ReadLines(envPath))
                 {
-                    var apiKey = apiKeyElement.GetString();
-                    if (!string.IsNullOrWhiteSpace(apiKey))
+                    var trimmed = line.Trim();
+                    
+                    // Skip empty lines and comments
+                    if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith("#"))
+                        continue;
+                    
+                    // Parse KEY=VALUE
+                    var parts = trimmed.Split('=', 2);
+                    if (parts.Length == 2)
                     {
-                        Environment.SetEnvironmentVariable("METRICS_OPENROUTER_API_KEY", apiKey);
+                        var key = parts[0].Trim();
+                        var value = parts[1].Trim();
+                        
+                        // Remove quotes if present
+                        if (value.StartsWith('"') && value.EndsWith('"'))
+                            value = value.Substring(1, value.Length - 2);
+                        if (value.StartsWith("'") && value.EndsWith("'"))
+                            value = value.Substring(1, value.Length - 2);
+                        
+                        // ALWAYS set from .env (we cleared env vars before LoadEnvFile)
+                        // This ensures .env is always the source of truth
+                        Environment.SetEnvironmentVariable(key, value);
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Warning: Failed to load .env file: {ex.Message}");
+            }
         }
-        catch
-        {
-            // Silently fail - tests will skip if no API key
-        }
+    }
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        // Load API key from appsettings.Development.json and/or environment variable
+        // Environment variable takes precedence (should be loaded from .env via load-env-and-test.ps1)
+        // For LLM tests: use real OpenRouter API (not mock)
 
         builder.ConfigureAppConfiguration((context, config) =>
         {
@@ -105,6 +159,8 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         // Clean up env vars
         Environment.SetEnvironmentVariable("METRICS_SQLITE_PATH", null);
         Environment.SetEnvironmentVariable("METRICS_SECRET_KEY", null);
+        Environment.SetEnvironmentVariable("METRICS_OPENROUTER_API_KEY", null);
+        Environment.SetEnvironmentVariable("OPENROUTER_API_KEY", null);
         Environment.SetEnvironmentVariable("Auth__Mode", null);
         Environment.SetEnvironmentVariable("Auth__SigningKey", null);
         Environment.SetEnvironmentVariable("Auth__LocalJwt__EnableBootstrapAdmin", null);

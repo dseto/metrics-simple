@@ -49,3 +49,23 @@
 - Botão Save tem aria-label 'Save process'.
 - Erros de campo devem usar aria-describedby apontando para helper/error text.
 - Delete dialog: foco inicial em Cancel.
+
+
+---
+
+## Versions panel (Delta 1.2.0)
+
+### Objetivo
+Exibir todas as versões do processo e permitir abrir/criar.
+
+### API
+- GET `/api/v1/processes/{processId}/versions`
+  - Deve ser chamado ao abrir o processo e ao salvar uma versão.
+  - Não pode responder 405.
+
+### UI Behavior
+- Mostrar lista ordenada por versão asc.
+- Empty state: “Nenhuma versão criada ainda.”
+- Erros:
+  - 404: processo não encontrado
+  - 5xx: mostrar mensagem e opção “Tentar novamente”

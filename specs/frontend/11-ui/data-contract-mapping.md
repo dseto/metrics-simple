@@ -20,7 +20,15 @@ Campos: enabled, sourceRequest, dsl, outputSchema, sampleInput.
 ## Connector
 - GET/POST /api/connectors
 
-Campos: id, name, baseUrl, authRef, timeoutSeconds.
+Campos: id, name, baseUrl, REMOVIDO_REMOVIDO_authRef, timeoutSeconds.
 
 ## Preview
 - POST /api/preview/transform
+
+
+## Delta 1.2.0 — Mapping Connector
+- UI `authType` -> API `authType`
+- UI apiToken/apiTokenSpecified -> API fields (writeOnly)
+- UI apiKeyLocation/apiKeyName/apiKeyValue/apiKeySpecified -> API fields
+- UI basicUsername/basicPassword/basicPasswordSpecified -> API fields
+- UI requestDefaults -> API requestDefaults

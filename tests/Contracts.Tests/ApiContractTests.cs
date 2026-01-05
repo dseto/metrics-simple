@@ -54,12 +54,20 @@ public class ApiContractTests
         Assert.NotNull(schema);
         Assert.Equal(JsonObjectType.Object, schema.Type);
         
-        // Verify required properties per spec
+        // Verify required properties per spec (v1.2.0+ removed authRef, added authType)
         Assert.True(schema.Properties.ContainsKey("id"), "connector must have 'id' property");
         Assert.True(schema.Properties.ContainsKey("name"), "connector must have 'name' property");
         Assert.True(schema.Properties.ContainsKey("baseUrl"), "connector must have 'baseUrl' property");
-        Assert.True(schema.Properties.ContainsKey("authRef"), "connector must have 'authRef' property");
         Assert.True(schema.Properties.ContainsKey("timeoutSeconds"), "connector must have 'timeoutSeconds' property");
+        Assert.True(schema.Properties.ContainsKey("authType"), "connector must have 'authType' property (v1.2.0+)");
+        
+        // Verify authType has correct enum values
+        var authTypeProp = schema.Properties["authType"];
+        Assert.NotNull(authTypeProp);
+        Assert.Contains("NONE", authTypeProp.Enumeration.Select(e => e?.ToString()));
+        Assert.Contains("BEARER", authTypeProp.Enumeration.Select(e => e?.ToString()));
+        Assert.Contains("API_KEY", authTypeProp.Enumeration.Select(e => e?.ToString()));
+        Assert.Contains("BASIC", authTypeProp.Enumeration.Select(e => e?.ToString()));
         
         // Verify 'id' property exists (it's a $ref to id.schema.json, resolved by NJsonSchema)
         var idProp = schema.Properties["id"];
@@ -183,14 +191,22 @@ public class ApiContractTests
     [Fact]
     public void TestConnectorDtoStructure()
     {
-        // Verify that ConnectorDto has the required fields per OpenAPI spec
+        // Verify that ConnectorDto has the required fields per OpenAPI spec (v1.2.0+ removed AuthRef, added AuthType)
         var connectorType = typeof(ConnectorDto);
         
         Assert.True(connectorType.GetProperty("Id") != null, "ConnectorDto must have Id property");
         Assert.True(connectorType.GetProperty("Name") != null, "ConnectorDto must have Name property");
         Assert.True(connectorType.GetProperty("BaseUrl") != null, "ConnectorDto must have BaseUrl property");
-        Assert.True(connectorType.GetProperty("AuthRef") != null, "ConnectorDto must have AuthRef property");
+        Assert.True(connectorType.GetProperty("AuthType") != null, "ConnectorDto must have AuthType property (v1.2.0+)");
         Assert.True(connectorType.GetProperty("TimeoutSeconds") != null, "ConnectorDto must have TimeoutSeconds property");
+        
+        // Verify new v1.2.0+ properties for different auth types
+        Assert.True(connectorType.GetProperty("HasApiToken") != null, "ConnectorDto must have HasApiToken property");
+        Assert.True(connectorType.GetProperty("HasApiKey") != null, "ConnectorDto must have HasApiKey property");
+        Assert.True(connectorType.GetProperty("HasBasicPassword") != null, "ConnectorDto must have HasBasicPassword property");
+        Assert.True(connectorType.GetProperty("ApiKeyName") != null, "ConnectorDto must have ApiKeyName property");
+        Assert.True(connectorType.GetProperty("ApiKeyLocation") != null, "ConnectorDto must have ApiKeyLocation property");
+        Assert.True(connectorType.GetProperty("BasicUsername") != null, "ConnectorDto must have BasicUsername property");
     }
 
     [Fact]
