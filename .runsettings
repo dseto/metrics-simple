@@ -2,7 +2,8 @@
 <RunSettings>
   <RunConfiguration>
     <EnvironmentVariables>
-      <METRICS_OPENROUTER_API_KEY>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</METRICS_OPENROUTER_API_KEY>
+      <!-- SECURITY: Replace with your actual OpenRouter API key from https://openrouter.ai/keys -->
+      <METRICS_OPENROUTER_API_KEY>YOUR_OPENROUTER_API_KEY_HERE</METRICS_OPENROUTER_API_KEY>
       <ASPNETCORE_ENVIRONMENT>Development</ASPNETCORE_ENVIRONMENT>
       <DOTNET_ENVIRONMENT>Development</DOTNET_ENVIRONMENT>
     </EnvironmentVariables>

@@ -56,6 +56,12 @@ nunit-*.xml
 # Local environment file (should never be committed)
 .env
 
+# Run settings with secrets (should never be committed)
+.runsettings
+
+# Development appsettings with secrets (should never be committed)
+src/Api/appsettings.Development.json
+
 # Database files (generated at runtime, never commit)
 *.db
 *.sqlite
