@@ -5,9 +5,9 @@ namespace Metrics.Api;
 
 public interface IProcessVersionRepository
 {
-    Task<ProcessVersionDto?> GetVersionAsync(string processId, string version);
+    Task<ProcessVersionDto?> GetVersionAsync(string processId, int version);
     Task<ProcessVersionDto> CreateVersionAsync(ProcessVersionDto version);
-    Task<ProcessVersionDto> UpdateVersionAsync(string processId, string version, ProcessVersionDto updated);
+    Task<ProcessVersionDto?> UpdateVersionAsync(string processId, int version, ProcessVersionDto updated);
 }
 
 public sealed class ProcessVersionRepository : IProcessVersionRepository
@@ -19,7 +19,7 @@ public sealed class ProcessVersionRepository : IProcessVersionRepository
         _connectionString = $"Data Source={dbPath}";
     }
 
-    public async Task<ProcessVersionDto?> GetVersionAsync(string processId, string version)
+    public async Task<ProcessVersionDto?> GetVersionAsync(string processId, int version)
     {
         using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync();
@@ -49,7 +49,7 @@ public sealed class ProcessVersionRepository : IProcessVersionRepository
 
             return new ProcessVersionDto(
                 processId,
-                version,
+                reader.GetInt32(1),
                 reader.GetBoolean(2),
                 sourceRequest,
                 new DslDto(dslProfile, dslText),
@@ -81,14 +81,32 @@ public sealed class ProcessVersionRepository : IProcessVersionRepository
         command.Parameters.AddWithValue("@sampleInputJson", version.SampleInput != null ? JsonSerializer.Serialize(version.SampleInput) : DBNull.Value);
         command.Parameters.AddWithValue("@now", DateTime.UtcNow.ToString("O"));
 
-        await command.ExecuteNonQueryAsync();
-        return version;
+        try
+        {
+            await command.ExecuteNonQueryAsync();
+            return version;
+        }
+        catch (SqliteException ex) when (ex.SqliteErrorCode == 19)
+        {
+            // UNIQUE constraint violation - version already exists
+            throw new InvalidOperationException($"Version {version.Version} already exists for process {version.ProcessId}", ex);
+        }
     }
 
-    public async Task<ProcessVersionDto> UpdateVersionAsync(string processId, string version, ProcessVersionDto updated)
+    public async Task<ProcessVersionDto?> UpdateVersionAsync(string processId, int version, ProcessVersionDto updated)
     {
         using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync();
+
+        // Check if version exists
+        var checkCommand = connection.CreateCommand();
+        checkCommand.CommandText = "SELECT 1 FROM ProcessVersion WHERE processId = @processId AND version = @version";
+        checkCommand.Parameters.AddWithValue("@processId", processId);
+        checkCommand.Parameters.AddWithValue("@version", version);
+        
+        var exists = await checkCommand.ExecuteScalarAsync() != null;
+        if (!exists)
+            return null;
 
         var command = connection.CreateCommand();
         command.CommandText = @"

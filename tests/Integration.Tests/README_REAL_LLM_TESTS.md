@@ -154,7 +154,7 @@ Resultado: 4 testes reais executam contra OpenRouter:
     "Provider": "HttpOpenAICompatible",
     "EndpointUrl": "https://openrouter.ai/api/v1/chat/completions",
     "ApiKey": "",
-    "Model": "openai/gpt-4o-mini"
+    "Model": "openai/gpt-oss-120b"
   }
 }
 ```

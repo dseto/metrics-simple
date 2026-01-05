@@ -28,7 +28,7 @@ public record AzureBlobStorageDto(
 // ProcessVersion Models
 public record ProcessVersionDto(
     string ProcessId,
-    string Version,
+    int Version,
     bool Enabled,
     SourceRequestDto SourceRequest,
     DslDto Dsl,

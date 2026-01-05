@@ -107,7 +107,7 @@ var aiConfig = builder.Configuration.GetSection("AI").Get<AiConfiguration>() ?? 
     Enabled = false,
     Provider = "HttpOpenAICompatible",
     EndpointUrl = "https://openrouter.ai/api/v1/chat/completions",
-    Model = "openai/gpt-4o-mini",
+    Model = "openai/gpt-oss-120b",
     PromptVersion = "1.0.0",
     TimeoutSeconds = 30,
     MaxRetries = 1,
@@ -496,20 +496,36 @@ async Task<IResult> DeleteProcess(string id, IProcessRepository repo)
 
 async Task<IResult> CreateProcessVersion(string processId, ProcessVersionDto version, IProcessVersionRepository repo)
 {
-    var created = await repo.CreateVersionAsync(version with { ProcessId = processId });
-    return Results.Created($"/api/v1/processes/{processId}/versions/{created.Version}", created);
+    try
+    {
+        var created = await repo.CreateVersionAsync(version with { ProcessId = processId });
+        return Results.Created($"/api/v1/processes/{processId}/versions/{created.Version}", created);
+    }
+    catch (InvalidOperationException ex) when (ex.Message.Contains("already exists"))
+    {
+        return Results.Conflict(new { error = ex.Message });
+    }
 }
 
 async Task<IResult> GetProcessVersion(string processId, string version, IProcessVersionRepository repo)
 {
-    var pv = await repo.GetVersionAsync(processId, version);
+    if (!int.TryParse(version, out var versionInt))
+        return Results.BadRequest(new { error = "Version must be an integer" });
+    
+    var pv = await repo.GetVersionAsync(processId, versionInt);
     if (pv == null) return Results.NotFound();
     return Results.Ok(pv);
 }
 
 async Task<IResult> UpdateProcessVersion(string processId, string version, ProcessVersionDto updated, IProcessVersionRepository repo)
 {
-    var result = await repo.UpdateVersionAsync(processId, version, updated);
+    if (!int.TryParse(version, out var versionInt))
+        return Results.BadRequest(new { error = "Version must be an integer" });
+    
+    var result = await repo.UpdateVersionAsync(processId, versionInt, updated);
+    if (result == null)
+        return Results.NotFound();
+    
     return Results.Ok(result);
 }
 

@@ -36,7 +36,20 @@
 
 ---
 
-## 🔍 Como Usar Este Index
+## � 2026-01-05 (Sessão Atual - Testes de Versão)
+
+| # | Arquivo | Propósito | Status |
+|---|---------|-----------|--------|
+| 01 | `20260105_01_DOCKER_REBUILD_COMPLETE.md` | Rebuild completo com todas as correções | ✅ |
+| 06 | `20260105_06_DOCKER_REBUILD_DEPLOYMENT_COMPLETE.md` | Relatório de deployment completo | ✅ |
+| 07 | `20260105_07_VERSION_TYPE_FIX.md` | Fix crítico: tipo Version string → int | ✅ |
+| 08 | `20260105_08_VERSION_LIFECYCLE_TESTS.md` | Suite completa IT04: 12 testes de versão | ✅ |
+| 09 | `20260105_09_VERSION_LIFECYCLE_TESTS_COMPLETE.md` | Sumário executivo: implementação completa IT04 | ✅ |
+| 10 | `20260105_10_RELEASE_NOTES.md` | Release notes: features, fixes, integração | ✅ |
+| 11 | `20260105_11_DOCKER_DEPLOYMENT_FINAL.md` | Relatório final: rebuild e deployment Docker | ✅ |
+---
+
+## �🔍 Como Usar Este Index
 
 ### Procurando por tópico?
 

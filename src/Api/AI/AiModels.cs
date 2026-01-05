@@ -12,7 +12,7 @@ public record AiConfiguration
     public string Provider { get; init; } = "HttpOpenAICompatible";
     public string EndpointUrl { get; init; } = "https://openrouter.ai/api/v1/chat/completions";
     public string? ApiKey { get; set; }
-    public string Model { get; init; } = "openai/gpt-4o-mini";
+    public string Model { get; init; } = "openai/gpt-oss-120b";
     public string PromptVersion { get; init; } = "1.0.0";
     public int TimeoutSeconds { get; init; } = 30;
     public int MaxRetries { get; init; } = 1;

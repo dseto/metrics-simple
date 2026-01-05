@@ -106,7 +106,7 @@ public class IT02_EndToEndRunnerTests : IDisposable
         var outputSchema = JsonDocument.Parse(TestFixtures.GetHostsCpuOutputSchemaJson()).RootElement;
         var version = new ProcessVersionDto(
             ProcessId: processId,
-            Version: "1",
+            Version: 1,
             Enabled: true,
             SourceRequest: new SourceRequestDto(
                 Method: "GET",
@@ -203,7 +203,7 @@ public class IT02_EndToEndRunnerTests : IDisposable
         var outputSchema = JsonDocument.Parse(TestFixtures.GetHostsCpuOutputSchemaJson()).RootElement;
         var version = new ProcessVersionDto(
             ProcessId: processId,
-            Version: "1",
+            Version: 1,
             Enabled: true,
             SourceRequest: new SourceRequestDto(
                 Method: "GET",

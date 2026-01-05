@@ -154,7 +154,7 @@ public class IT01_CrudPersistenceTests : IDisposable
         var outputSchema = JsonDocument.Parse(TestFixtures.GetHostsCpuOutputSchemaJson()).RootElement;
         var version = new ProcessVersionDto(
             ProcessId: process.Id,
-            Version: "1",
+            Version: 1,
             Enabled: true,
             SourceRequest: new SourceRequestDto(
                 Method: "GET",
@@ -179,7 +179,7 @@ public class IT01_CrudPersistenceTests : IDisposable
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         var created = await response.Content.ReadFromJsonAsync<JsonElement>();
         created.GetProperty("processId").GetString().Should().Be(process.Id);
-        created.GetProperty("version").GetString().Should().Be("1");
+        created.GetProperty("version").GetInt32().Should().Be(1);
         created.GetProperty("enabled").GetBoolean().Should().BeTrue();
 
         // Verify persistence via GET
@@ -223,7 +223,7 @@ public class IT01_CrudPersistenceTests : IDisposable
         var outputSchema = JsonDocument.Parse(TestFixtures.GetHostsCpuOutputSchemaJson()).RootElement;
         var version = new ProcessVersionDto(
             ProcessId: process.Id,
-            Version: "1",
+            Version: 1,
             Enabled: true,
             SourceRequest: new SourceRequestDto(
                 Method: "GET",

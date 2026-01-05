@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <RunConfiguration>
+    <EnvironmentVariables>
+      <METRICS_OPENROUTER_API_KEY>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</METRICS_OPENROUTER_API_KEY>
+      <ASPNETCORE_ENVIRONMENT>Development</ASPNETCORE_ENVIRONMENT>
+      <DOTNET_ENVIRONMENT>Development</DOTNET_ENVIRONMENT>
+    </EnvironmentVariables>
+  </RunConfiguration>
+</RunSettings>
