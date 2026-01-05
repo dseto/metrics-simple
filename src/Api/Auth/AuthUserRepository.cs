@@ -40,14 +40,14 @@ public class AuthUserRepository : IAuthUserRepository
         await conn.OpenAsync();
 
         // Normalize username for case-insensitive search
-        var normalizedUsername = username.Trim().ToLowerInvariant();
+        var normalizedUsername = username.Trim();
 
         using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
             SELECT id, username, display_name, email, password_hash, is_active, 
                    failed_attempts, lockout_until_utc, created_at_utc, updated_at_utc, last_login_utc
             FROM auth_users 
-            WHERE LOWER(username) = @username";
+            WHERE LOWER(username) = LOWER(@username)";
         cmd.Parameters.AddWithValue("@username", normalizedUsername);
 
         using var reader = await cmd.ExecuteReaderAsync();
@@ -124,6 +124,17 @@ public class AuthUserRepository : IAuthUserRepository
 
         try
         {
+            // Double-check: user shouldn't exist (case-insensitive)
+            using var checkCmd = conn.CreateCommand();
+            checkCmd.Transaction = (SqliteTransaction)tx;
+            checkCmd.CommandText = "SELECT COUNT(*) FROM auth_users WHERE LOWER(username) = LOWER(@username)";
+            checkCmd.Parameters.AddWithValue("@username", user.Username);
+            var count = Convert.ToInt32(await checkCmd.ExecuteScalarAsync());
+            if (count > 0)
+            {
+                throw new InvalidOperationException("User with this username already exists");
+            }
+
             using var cmd = conn.CreateCommand();
             cmd.Transaction = (SqliteTransaction)tx;
             cmd.CommandText = @"

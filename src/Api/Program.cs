@@ -337,9 +337,15 @@ adminAuthGroup.MapPost("/", CreateUserHandler)
     .Produces(400)
     .Produces(409);
 
-// GET /api/admin/auth/users/{userId} - Get user details
+// GET /api/admin/auth/users/{userId} - Get user details by ID
 adminAuthGroup.MapGet("/{userId}", GetUserHandler)
     .WithName("GetUser")
+    .Produces(200)
+    .Produces(404);
+
+// GET /api/admin/auth/users/by-username/{username} - Get user details by username
+adminAuthGroup.MapGet("/by-username/{username}", GetUserByUsernameHandler)
+    .WithName("GetUserByUsername")
     .Produces(200)
     .Produces(404);
 
@@ -867,6 +873,27 @@ static async Task<IResult> GetUserHandler(
     IAuthUserRepository userRepo)
 {
     var user = await userRepo.GetByIdAsync(userId);
+    if (user == null)
+        return Results.NotFound();
+
+    return Results.Ok(new
+    {
+        id = user.Id,
+        username = user.Username,
+        displayName = user.DisplayName,
+        email = user.Email,
+        isActive = user.IsActive,
+        roles = user.Roles,
+        createdAt = user.CreatedAtUtc,
+        lastLogin = user.LastLoginUtc
+    });
+}
+
+static async Task<IResult> GetUserByUsernameHandler(
+    string username,
+    IAuthUserRepository userRepo)
+{
+    var user = await userRepo.GetByUsernameAsync(username);
     if (user == null)
         return Results.NotFound();
 

@@ -24,6 +24,10 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         // because Program.cs reads configuration during startup
         Environment.SetEnvironmentVariable("METRICS_SQLITE_PATH", _dbPath);
         
+        // Set secret key for token encryption
+        // Must be 32 bytes base64
+        Environment.SetEnvironmentVariable("METRICS_SECRET_KEY", "dGVzdC1zZWNyZXQtZm9yLXRlc3RpbmctMzItY2hhcnM=");  // base64 encoded
+        
         if (_disableAuth)
         {
             Environment.SetEnvironmentVariable("Auth__Mode", "Off");
@@ -100,6 +104,7 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         
         // Clean up env vars
         Environment.SetEnvironmentVariable("METRICS_SQLITE_PATH", null);
+        Environment.SetEnvironmentVariable("METRICS_SECRET_KEY", null);
         Environment.SetEnvironmentVariable("Auth__Mode", null);
         Environment.SetEnvironmentVariable("Auth__SigningKey", null);
         Environment.SetEnvironmentVariable("Auth__LocalJwt__EnableBootstrapAdmin", null);
