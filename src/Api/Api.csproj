@@ -7,6 +7,7 @@
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.11" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11" />
+    <PackageReference Include="NJsonSchema" Version="11.1.0" />
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.2" />
     <PackageReference Include="Serilog.Formatting.Compact" Version="2.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
@@ -15,5 +16,10 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Engine\Engine.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\templates\plan-schema-v1.json" Link="templates\plan-schema-v1.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>

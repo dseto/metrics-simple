@@ -160,7 +160,8 @@ builder.Services.AddScoped<LegacyAiDslEngine>(sp => new LegacyAiDslEngine(
     Log.ForContext<LegacyAiDslEngine>()));
 
 builder.Services.AddScoped<PlanV1AiEngine>(sp => new PlanV1AiEngine(
-    Log.ForContext<PlanV1AiEngine>()));
+    Log.ForContext<PlanV1AiEngine>(),
+    sp.GetRequiredService<EngineService>()));
 
 builder.Services.AddScoped<AiEngineRouter>(sp => new AiEngineRouter(
     sp.GetRequiredService<LegacyAiDslEngine>(),

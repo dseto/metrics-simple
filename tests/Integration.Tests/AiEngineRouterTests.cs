@@ -25,9 +25,18 @@ public class AiEngineRouterTests
         
         // Create mock/stub engines
         var legacyEngine = CreateLegacyEngineMock();
-        var planV1Engine = new PlanV1AiEngine(_testLogger);
+        var engineService = CreateEngineService();
+        var planV1Engine = new PlanV1AiEngine(_testLogger, engineService);
         
         return new AiEngineRouter(legacyEngine, planV1Engine, config, _testLogger);
+    }
+    
+    private EngineService CreateEngineService()
+    {
+        var transformer = new JsonataTransformer();
+        var validator = new SchemaValidator();
+        var csvGenerator = new CsvGenerator();
+        return new EngineService(transformer, validator, csvGenerator);
     }
     
     private LegacyAiDslEngine CreateLegacyEngineMock()
@@ -35,10 +44,7 @@ public class AiEngineRouterTests
         // For routing tests, we just need the engine to exist - not actually execute
         var mockProvider = new MockAiProvider();
         var config = new AiConfiguration { Enabled = true };
-        var transformer = new JsonataTransformer();
-        var validator = new SchemaValidator();
-        var csvGenerator = new CsvGenerator();
-        var engineService = new EngineService(transformer, validator, csvGenerator);
+        var engineService = CreateEngineService();
         
         return new LegacyAiDslEngine(mockProvider, config, engineService, _testLogger);
     }

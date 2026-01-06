@@ -133,13 +133,15 @@ public class IT04_AiDslGenerateTests : IClassFixture<AiTestFixture>, IDisposable
         // Act
         var response = await _client.PostAsJsonAsync("/api/v1/ai/dsl/generate", request);
 
-        // Assert - plan_v1 returns 501 Not Implemented (stub)
-        response.StatusCode.Should().Be(HttpStatusCode.NotImplemented);
+        // Assert - plan_v1 now works! Returns 200 with deterministic output
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var error = await response.Content.ReadFromJsonAsync<AiError>();
-        error.Should().NotBeNull();
-        error!.Code.Should().Be("ENGINE_NOT_IMPLEMENTED");
-        error!.Message.Should().Contain("plan_v1");
+        var result = await response.Content.ReadFromJsonAsync<DslGenerateResult>();
+        result.Should().NotBeNull();
+        result!.EngineUsed.Should().Be("plan_v1");
+        result!.Dsl.Profile.Should().Be("plan_v1");
+        result!.ExampleRows.Should().NotBeNull();
+        result!.OutputSchema.ValueKind.Should().Be(JsonValueKind.Object);
     }
 
     [Fact]
@@ -231,6 +233,114 @@ public class IT04_AiDslGenerateTests : IClassFixture<AiTestFixture>, IDisposable
         var result = await response.Content.ReadFromJsonAsync<DslGenerateResult>();
         result.Should().NotBeNull();
         result!.EngineUsed.Should().Be("legacy");
+    }
+
+    [Fact]
+    public async Task GenerateDsl_WithPlanV1AndIncludePlan_ReturnsPlanInResponse()
+    {
+        // Arrange
+        var request = new DslGenerateRequest
+        {
+            GoalText = "Extract name and value from the products array.",
+            SampleInput = JsonSerializer.SerializeToElement(new
+            {
+                products = new[]
+                {
+                    new { name = "Item A", value = 100 },
+                    new { name = "Item B", value = 200 }
+                }
+            }),
+            DslProfile = "jsonata",
+            Constraints = new DslConstraints
+            {
+                MaxColumns = 50,
+                AllowTransforms = true,
+                ForbidNetworkCalls = true,
+                ForbidCodeExecution = true
+            },
+            Engine = "plan_v1",
+            IncludePlan = true  // Request plan in response
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/v1/ai/dsl/generate", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var result = await response.Content.ReadFromJsonAsync<DslGenerateResult>();
+        result.Should().NotBeNull();
+        result!.EngineUsed.Should().Be("plan_v1");
+        result!.Plan.Should().NotBeNull();
+        result!.Plan!.Value.TryGetProperty("planVersion", out var version).Should().BeTrue();
+        version.GetString().Should().Be("1.0");
+    }
+
+    [Fact]
+    public async Task GenerateDsl_WithPlanV1AndExplicitPlan_ExecutesPlan()
+    {
+        // Arrange - provide explicit plan in hints
+        var plan = @"{
+            ""planVersion"": ""1.0"",
+            ""source"": { ""recordPath"": ""/items"" },
+            ""steps"": [
+                {
+                    ""op"": ""select"",
+                    ""fields"": [
+                        { ""from"": ""/name"", ""as"": ""ProductName"" },
+                        { ""from"": ""/price"", ""as"": ""Price"" }
+                    ]
+                },
+                {
+                    ""op"": ""sort"",
+                    ""by"": ""/Price"",
+                    ""dir"": ""desc""
+                }
+            ]
+        }";
+
+        var request = new DslGenerateRequest
+        {
+            GoalText = "Sort products by price descending.",
+            SampleInput = JsonSerializer.SerializeToElement(new
+            {
+                items = new[]
+                {
+                    new { name = "Cheap", price = 10 },
+                    new { name = "Expensive", price = 100 },
+                    new { name = "Medium", price = 50 }
+                }
+            }),
+            DslProfile = "jsonata",
+            Constraints = new DslConstraints
+            {
+                MaxColumns = 50,
+                AllowTransforms = true,
+                ForbidNetworkCalls = true,
+                ForbidCodeExecution = true
+            },
+            Engine = "plan_v1",
+            IncludePlan = true,
+            Hints = new Dictionary<string, string> { ["plan"] = plan }
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/v1/ai/dsl/generate", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var result = await response.Content.ReadFromJsonAsync<DslGenerateResult>();
+        result.Should().NotBeNull();
+        result!.EngineUsed.Should().Be("plan_v1");
+        result!.ExampleRows.Should().NotBeNull();
+
+        // Verify rows are sorted by price descending
+        var rows = result!.ExampleRows!.Value.EnumerateArray().ToList();
+        rows.Should().HaveCount(3);
+        rows[0].GetProperty("ProductName").GetString().Should().Be("Expensive");
+        rows[1].GetProperty("ProductName").GetString().Should().Be("Medium");
+        rows[2].GetProperty("ProductName").GetString().Should().Be("Cheap");
     }
 
     public void Dispose()
