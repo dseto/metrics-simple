@@ -9,9 +9,22 @@ namespace Metrics.Api.AI;
 public record AiConfiguration
 {
     public bool Enabled { get; init; }
+    /// <summary>
+    /// AI Provider: "HttpOpenAICompatible" (OpenRouter/OpenAI), "Gemini" (Google), or "MockProvider"
+    /// </summary>
     public string Provider { get; init; } = "HttpOpenAICompatible";
+    /// <summary>
+    /// Endpoint URL.
+    /// For OpenRouter: https://openrouter.ai/api/v1/chat/completions
+    /// For Gemini: https://generativelanguage.googleapis.com/v1beta/models (without model name or key)
+    /// </summary>
     public string EndpointUrl { get; init; } = "https://openrouter.ai/api/v1/chat/completions";
     public string? ApiKey { get; set; }
+    /// <summary>
+    /// Model name. 
+    /// For OpenRouter: "openai/gpt-4-turbo", "nousresearch/hermes-3-llama-3.1-405b", etc.
+    /// For Gemini: "gemini-2.5-flash", "gemini-1.5-pro", "gemini-1.5-flash", etc. (with or without "models/" prefix)
+    /// </summary>
     public string Model { get; init; } = "openai/gpt-oss-120b";
     public string PromptVersion { get; init; } = "1.0.0";
     public int TimeoutSeconds { get; init; } = 30;

@@ -131,6 +131,7 @@ builder.Services.AddSingleton(aiConfig);
 
 // Register AI Provider based on configuration
 builder.Services.AddHttpClient<HttpOpenAiCompatibleProvider>();
+builder.Services.AddHttpClient<GeminiProvider>();
 builder.Services.AddSingleton<IAiProvider>(sp =>
 {
     if (!aiConfig.Enabled)
@@ -146,11 +147,19 @@ builder.Services.AddSingleton<IAiProvider>(sp =>
         return new MockAiProvider();
     }
 
-    // Default to HttpOpenAICompatible
-    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-    var httpClient = httpClientFactory.CreateClient(nameof(HttpOpenAiCompatibleProvider));
-    var logger = sp.GetRequiredService<ILogger<HttpOpenAiCompatibleProvider>>();
-    return new HttpOpenAiCompatibleProvider(httpClient, aiConfig, logger);
+    if (aiConfig.Provider == "Gemini")
+    {
+        var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+        var httpClient = httpClientFactory.CreateClient(nameof(GeminiProvider));
+        var logger = sp.GetRequiredService<ILogger<GeminiProvider>>();
+        return new GeminiProvider(httpClient, aiConfig, logger);
+    }
+
+    // Default to HttpOpenAICompatible (OpenRouter, OpenAI, etc.)
+    var defaultHttpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var defaultHttpClient = defaultHttpClientFactory.CreateClient(nameof(HttpOpenAiCompatibleProvider));
+    var defaultLogger = sp.GetRequiredService<ILogger<HttpOpenAiCompatibleProvider>>();
+    return new HttpOpenAiCompatibleProvider(defaultHttpClient, aiConfig, defaultLogger);
 });
 
 // Register AI Engines and Router
