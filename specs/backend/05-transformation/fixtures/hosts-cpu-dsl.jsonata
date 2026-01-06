@@ -1,9 +1,0 @@
-(
-  $map(result, function($v) {
-    {
-      "timestamp": $v.timestamp,
-      "hostName": $v.host,
-      "cpuUsagePercent": $round($v.cpu * 100, 2)
-    }
-  })
-)
