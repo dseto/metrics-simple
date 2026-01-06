@@ -154,6 +154,19 @@ SCRIPTS & DOCUMENTATION:
 - Create scripts/docker-health.ps1 and scripts/docker-health.sh for monitoring
 - Document all environment variables in .env.example
 
+AUTOMATED DEPLOYMENT (IMPORTANT):
+- When Docker publication is required, use the existing PowerShell script:
+  .\scripts\build-and-publish-docker.ps1
+- Script handles: dotnet build, docker compose build, container start, and health validation
+- Options:
+  - Default: .\scripts\build-and-publish-docker.ps1 (full: build + test + docker)
+  - Skip tests: .\scripts\build-and-publish-docker.ps1 -SkipTests
+  - Skip build: .\scripts\build-and-publish-docker.ps1 -NoBuild
+  - Both: .\scripts\build-and-publish-docker.ps1 -SkipTests -NoBuild
+- Script validates: API health, all containers running, endpoints accessible
+- DO NOT manually run docker compose commands if the script is available
+- This ensures reproducibility and consistency across deployments
+
 OUTPUT FORMAT:
 Return ONLY raw file contents, in this exact order:
 1. Dockerfile (API)

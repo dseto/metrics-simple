@@ -12,7 +12,7 @@ Successfully enabled and fixed all 4 Real LLM Integration Tests (IT05_RealLlmInt
 
 ### 1. **Configured OpenRouter API Key**
    - Added `METRICS_OPENROUTER_API_KEY` to `.runsettings` file
-   - Value: `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`
+   - Value: `*********-b126b457ae6a5565e938c3d6ac7841b246956d7588115333a61e90a0dd84767d`
    - File location: `c:\Projetos\metrics-simple\.runsettings`
 
 ### 2. **Updated appsettings.Development.json**
@@ -31,7 +31,7 @@ Successfully enabled and fixed all 4 Real LLM Integration Tests (IT05_RealLlmInt
    - Sets environment variables for test execution:
      ```xml
      <EnvironmentVariables>
-       <METRICS_OPENROUTER_API_KEY>sk-or-v1-...</METRICS_OPENROUTER_API_KEY>
+       <METRICS_OPENROUTER_API_KEY>*********-...</METRICS_OPENROUTER_API_KEY>
        <ASPNETCORE_ENVIRONMENT>Development</ASPNETCORE_ENVIRONMENT>
        <DOTNET_ENVIRONMENT>Development</DOTNET_ENVIRONMENT>
      </EnvironmentVariables>
@@ -79,7 +79,7 @@ dotnet test --settings .runsettings
 
 ### Option 2: With Environment Variable
 ```powershell
-$env:METRICS_OPENROUTER_API_KEY = "sk-or-v1-..."
+$env:METRICS_OPENROUTER_API_KEY = "*********-..."
 dotnet test
 ```
 

@@ -8,7 +8,7 @@
 2. Sign in with your OpenRouter account
 3. Click "**Create New Key**"
 4. Give it a name: `metrics-simple-dev` (or similar)
-5. Copy the key (starts with `sk-or-v1-...`)
+5. Copy the key (starts with `*********-...`)
 6. **Keep it safe** - you'll only see it once!
 
 ## Step 2: Configure Locally
@@ -17,7 +17,7 @@
 
 Set in your PowerShell terminal:
 ```powershell
-$env:METRICS_OPENROUTER_API_KEY = "sk-or-v1-YOUR_ACTUAL_KEY_HERE"
+$env:METRICS_OPENROUTER_API_KEY = "*********-YOUR_ACTUAL_KEY_HERE"
 ```
 
 Then run tests:
@@ -33,7 +33,7 @@ Edit `.runsettings`:
 <RunSettings>
   <RunConfiguration>
     <EnvironmentVariables>
-      <METRICS_OPENROUTER_API_KEY>sk-or-v1-YOUR_ACTUAL_KEY_HERE</METRICS_OPENROUTER_API_KEY>
+      <METRICS_OPENROUTER_API_KEY>*********-YOUR_ACTUAL_KEY_HERE</METRICS_OPENROUTER_API_KEY>
       <ASPNETCORE_ENVIRONMENT>Development</ASPNETCORE_ENVIRONMENT>
       <DOTNET_ENVIRONMENT>Development</DOTNET_ENVIRONMENT>
     </EnvironmentVariables>
@@ -47,7 +47,7 @@ Edit `.runsettings`:
 
 Edit `.env` (already in .gitignore):
 ```bash
-METRICS_OPENROUTER_API_KEY=sk-or-v1-YOUR_ACTUAL_KEY_HERE
+METRICS_OPENROUTER_API_KEY=*********-YOUR_ACTUAL_KEY_HERE
 ```
 
 ## Step 3: Verify Configuration
@@ -146,7 +146,7 @@ jobs:
 **Solution**: Invalid or wrong key
 
 1. Verify key format:
-   - Should start with: `sk-or-v1-`
+   - Should start with: `*********-`
    - Should be ~80 characters long
 
 2. Check key is active:

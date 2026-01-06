@@ -69,3 +69,4 @@ src/Api/appsettings.Development.json
 *.db-journal
 src/Api/config/*.db
 src/Api/config/*.backup
+specs

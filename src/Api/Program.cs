@@ -678,6 +678,32 @@ async Task<IResult> PreviewTransform(PreviewTransformRequestDto request, EngineS
     }
 }
 
+// Helper function to instantiate DSL templates
+string InstantiateTemplate(DslTemplateParams? templateParams)
+{
+    if (templateParams == null)
+        return "{}";
+
+    return templateParams.TemplateId switch
+    {
+        "T1" => DslTemplateLibrary.Template1_ExtractRename(
+            templateParams.SourcePath,
+            templateParams.FieldMappings ?? new()),
+        
+        "T5" => DslTemplateLibrary.Template5_GroupAggregate(
+            templateParams.SourcePath,
+            templateParams.GroupByField ?? "category",
+            templateParams.Aggregations ?? new()),
+        
+        "T7" => DslTemplateLibrary.Template7_FilterMap(
+            templateParams.SourcePath,
+            templateParams.FilterCondition,
+            templateParams.FieldMappings ?? new()),
+        
+        _ => "{}"
+    };
+}
+
 async Task<IResult> GenerateDsl(
     DslGenerateRequest request,
     IAiProvider aiProvider,
@@ -722,6 +748,12 @@ async Task<IResult> GenerateDsl(
             "AI DSL Generate: CorrelationId={CorrelationId}, Profile={Profile}, GoalLength={GoalLength}, InputHash={InputHash}",
             correlationId, request.DslProfile, request.GoalText.Length, inputHash);
 
+        // === TEMPLATE-FIRST STRATEGY (Disabled for now - needs engine wrapper) ===
+        // TODO: Re-enable when we have a public Transform method in EngineService
+        
+        logger.LogInformation("Skipping template-first (not yet enabled). Proceeding to LLM generation");
+        
+        // === FALLBACK TO LLM ===
         // Call AI provider with optional repair attempt
         var startTime = DateTime.UtcNow;
         const int maxRepairAttempts = 1;
@@ -796,16 +828,81 @@ async Task<IResult> GenerateDsl(
             // Run preview/validation using the Engine
             try
             {
+                // ⚠️ CRITICAL: First, run transform without full validation
+                // Use empty output schema to avoid "schema empty" error
                 var previewResult = engine.TransformValidateToCsv(
                     request.SampleInput,
                     result.Dsl.Profile,
                     result.Dsl.Text,
-                    result.OutputSchema);
+                    JsonSerializer.SerializeToElement(new { }));  // Use empty schema for preview
 
                 if (!previewResult.IsValid)
                 {
                     lastErrors = previewResult.Errors.ToList();
                     lastDslAttempt = result.Dsl.Text;
+                    
+                    // Check for known bad patterns FIRST
+                    var badPattern = DslBadPatternDetector.Detect(result.Dsl.Text);
+                    if (badPattern != DslBadPatternDetector.BadPatternType.None)
+                    {
+                        logger.LogWarning(
+                            "Detected known bad pattern in DSL: {Pattern}. Message: {Description}. Skipping repair and going directly to template fallback.",
+                            badPattern, DslBadPatternDetector.Describe(badPattern));
+                        
+                        // Don't retry - this pattern is known to repeat. Go to template fallback.
+                        if (attempt >= maxRepairAttempts)
+                        {
+                            var templateId = DslTemplateLibrary.DetectTemplate(request.GoalText);
+                            logger.LogInformation("Detected template for bad pattern fallback: {TemplateId}", templateId);
+                            
+                            var badPatternTemplateParams = DslTemplateLibrary.TryExtractParameters(
+                                JsonSerializer.SerializeToElement(request.SampleInput),
+                                templateId,
+                                request.GoalText);
+                            
+                            if (badPatternTemplateParams != null)
+                            {
+                                var badPatternTemplateDsl = InstantiateTemplate(badPatternTemplateParams);
+                                logger.LogInformation("Generated template DSL for bad pattern fallback: {TemplateDsl}", badPatternTemplateDsl);
+                                
+                                // Try template DSL with empty schema (for preview)
+                                var badPatternTemplateResult = engine.TransformValidateToCsv(
+                                    request.SampleInput,
+                                    result.Dsl.Profile,
+                                    badPatternTemplateDsl,
+                                    JsonSerializer.SerializeToElement(new { }));
+                                
+                                if (badPatternTemplateResult.IsValid)
+                                {
+                                    logger.LogInformation("Template fallback succeeded for bad pattern!");
+                                    
+                                    var badPatternSchema = OutputSchemaInferer.InferSchema(badPatternTemplateResult.OutputJson!.Value);
+                                    
+                                    return Results.Json(new DslGenerateResult
+                                    {
+                                        Dsl = result.Dsl with { Text = badPatternTemplateDsl },
+                                        OutputSchema = badPatternSchema,
+                                        Rationale = $"Used template fallback due to bad pattern: {DslBadPatternDetector.Describe(badPattern)}",
+                                        ExampleRows = badPatternTemplateResult.OutputJson,
+                                        Warnings = new List<string> { "Bad DSL pattern detected, used template fallback" },
+                                        ModelInfo = result.ModelInfo
+                                    });
+                                }
+                                else
+                                {
+                                    logger.LogWarning("Template fallback also failed for bad pattern: {Errors}", string.Join(", ", badPatternTemplateResult.Errors));
+                                }
+                            }
+                        }
+                        
+                        // Template fallback didn't help, return error
+                        return Results.Json(new AiError
+                        {
+                            Code = AiErrorCodes.AiOutputInvalid,
+                            Message = $"Bad DSL pattern detected: {DslBadPatternDetector.Describe(badPattern)}. Template fallback not applicable.",
+                            CorrelationId = correlationId
+                        }, statusCode: 502);
+                    }
                     
                     // Compute DSL hash for debugging
                     var dslHash = AiGuardrails.ComputeDslHash(result.Dsl.Text);
@@ -815,12 +912,102 @@ async Task<IResult> GenerateDsl(
                     
                     if (attempt >= maxRepairAttempts)
                     {
-                        logger.LogWarning("AI-generated DSL preview failed after repair: DSL_INVALID: Failed to parse/compile Jsonata expression. dslHash={DslHash} dslPreview={DslPreview}",
-                            dslHash, dslPreview);
+                        // Before giving up, try template fallback
+                        logger.LogInformation("DSL failed after repair. Attempting template fallback...");
+                        
+                        var templateId = DslTemplateLibrary.DetectTemplate(request.GoalText);
+                        logger.LogInformation("Detected template: {TemplateId}", templateId);
+                        
+                        var templateParams = DslTemplateLibrary.TryExtractParameters(
+                            JsonSerializer.SerializeToElement(request.SampleInput),
+                            templateId,
+                            request.GoalText);
+                        
+                        logger.LogInformation("🎯 Template params extracted: {Success}, TemplatId={TemplateId}, ParamsNull={ParamsNull}", 
+                            templateParams != null ? "YES" : "NO",
+                            templateId,
+                            templateParams == null);
+                        
+                        if (templateParams == null)
+                        {
+                            logger.LogWarning("Template params extraction FAILED - template fallback skipped");
+                        }
+                        
+                        if (templateParams != null)
+                        {
+                            // Try to instantiate template
+                            var templateDsl = InstantiateTemplate(templateParams);
+                            logger.LogInformation("Generated template DSL: {TemplateDsl}", templateDsl);
+                            
+                            // Try template DSL with EMPTY schema first (to get preview output)
+                            // Then infer the schema from the output
+                            var emptySchema = JsonDocument.Parse("{}").RootElement;
+                            var templateResult = engine.TransformValidateToCsv(
+                                request.SampleInput,
+                                result.Dsl.Profile,
+                                templateDsl,
+                                emptySchema);  // Use empty schema to skip validation, get preview output
+                            
+                            if (templateResult.OutputJson.HasValue)
+                            {
+                                // Template produced output! Infer schema and validate
+                                var inferredSchema = OutputSchemaInferer.InferSchema(templateResult.OutputJson.Value);
+                                
+                                // Re-validate with inferred schema
+                                var revalidateResult = engine.TransformValidateToCsv(
+                                    request.SampleInput,
+                                    result.Dsl.Profile,
+                                    templateDsl,
+                                    inferredSchema);
+                                
+                                if (revalidateResult.IsValid)
+                                {
+                                    // Template worked! Use it
+                                    logger.LogInformation("Template fallback succeeded! Using template DSL");
+                                    result = result with
+                                    {
+                                        Dsl = result.Dsl with { Text = templateDsl },
+                                        OutputSchema = inferredSchema
+                                    };
+                                    break; // Success!
+                                }
+                                else
+                                {
+                                    // Schema validation still failed (unlikely but handle it)
+                                    var previewRaw = revalidateResult.OutputJson.HasValue 
+                                        ? revalidateResult.OutputJson.Value.GetRawText()
+                                        : "(null)";
+                                    var previewPrefix = previewRaw.Length > 80 
+                                        ? previewRaw[..80] 
+                                        : previewRaw;
+                                    
+                                    logger.LogWarning(
+                                        "🚨 TEMPLATE FALLBACK FAILED: TemplateDsl={TemplateDsl}, PreviewPrefix={PreviewPrefix}, Errors={Errors}",
+                                        templateDsl.Length > 200 ? templateDsl[..200] + "..." : templateDsl,
+                                        previewPrefix,
+                                        string.Join("; ", revalidateResult.Errors));
+                                    
+                                    if (lastErrors == null) lastErrors = new List<string>();
+                                    lastErrors.Add($"Template fallback preview: {previewPrefix}");
+                                }
+                            }
+                            else
+                            {
+                                // Template didn't produce output
+                                logger.LogWarning(
+                                    "🚨 TEMPLATE FALLBACK FAILED: Template produced no output");
+                                
+                                if (lastErrors == null) lastErrors = new List<string>();
+                                lastErrors.Add("Template produced no output");
+                            }
+                        }
+                        
+                        // Template fallback didn't help, return error
+                        logger.LogWarning("AI-generated DSL preview failed after repair and template fallback");
                         return Results.Json(new AiError
                         {
                             Code = AiErrorCodes.AiOutputInvalid,
-                            Message = "AI-generated DSL failed preview validation after repair attempt",
+                            Message = "AI-generated DSL failed preview validation and template fallback failed",
                             Details = lastErrors.Select(e => new AiErrorDetail
                             {
                                 Path = "preview",
@@ -832,6 +1019,21 @@ async Task<IResult> GenerateDsl(
                     
                     logger.LogInformation("DSL preview failed, attempting repair: {Errors}", string.Join(", ", lastErrors));
                     continue;
+                }
+
+                // ✅ DSL preview succeeded! Now infer schema from the output
+                logger.LogInformation("DSL preview succeeded, inferring output schema server-side");
+                
+                if (previewResult.OutputJson.HasValue)
+                {
+                    // Infer schema from actual preview output (deterministic, not from LLM)
+                    var inferredSchema = OutputSchemaInferer.InferSchema(previewResult.OutputJson.Value);
+                    result = result with
+                    {
+                        OutputSchema = inferredSchema
+                    };
+                    
+                    logger.LogInformation("Generated output schema from preview output");
                 }
                 
                 // Success! DSL validated successfully

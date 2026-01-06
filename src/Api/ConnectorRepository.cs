@@ -38,33 +38,83 @@ public sealed class ConnectorRepository : IConnectorRepository
         using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync();
 
+        // First, get all connectors
         var command = connection.CreateCommand();
         command.CommandText = @"
             SELECT id, name, baseUrl, authType, authConfigJson, requestDefaultsJson, timeoutSeconds, enabled 
             FROM Connector 
             ORDER BY id ASC";
 
-        var connectors = new List<ConnectorDto>();
-        using var reader = await command.ExecuteReaderAsync();
+        var connectorData = new List<(string id, string name, string baseUrl, string authType, string? authConfigJson, string? requestDefaultsJson, int timeoutSeconds, bool enabled)>();
         
-        while (await reader.ReadAsync())
+        using (var reader = await command.ExecuteReaderAsync())
         {
-            var id = reader.GetString(0);
-            var authConfigJson = reader.IsDBNull(4) ? null : reader.GetString(4);
-            var requestDefaultsJson = reader.IsDBNull(5) ? null : reader.GetString(5);
+            while (await reader.ReadAsync())
+            {
+                var id = reader.GetString(0);
+                var authConfigJson = reader.IsDBNull(4) ? null : reader.GetString(4);
+                var requestDefaultsJson = reader.IsDBNull(5) ? null : reader.GetString(5);
+                
+                connectorData.Add((id, reader.GetString(1), reader.GetString(2), reader.GetString(3), authConfigJson, requestDefaultsJson, reader.GetInt32(6), reader.GetInt32(7) == 1));
+            }
+        } // Reader is disposed here
+
+        // Now get all secrets in a separate command (reader is disposed)
+        var secretsByConnector = new Dictionary<string, Dictionary<string, bool>>();
+        
+        var secretsCommand = connection.CreateCommand();
+        secretsCommand.CommandText = @"
+            SELECT connectorId, secretKind FROM connector_secrets";
+        
+        using (var secretsReader = await secretsCommand.ExecuteReaderAsync())
+        {
+            while (await secretsReader.ReadAsync())
+            {
+                var connectorId = secretsReader.GetString(0);
+                var secretKind = secretsReader.GetString(1);
+                
+                if (!secretsByConnector.ContainsKey(connectorId))
+                {
+                    secretsByConnector[connectorId] = new Dictionary<string, bool>
+                    {
+                        [SecretKinds.BearerToken] = false,
+                        [SecretKinds.ApiKeyValue] = false,
+                        [SecretKinds.BasicPassword] = false
+                    };
+                }
+                
+                if (secretsByConnector[connectorId].ContainsKey(secretKind))
+                {
+                    secretsByConnector[connectorId][secretKind] = true;
+                }
+            }
+        } // Reader is disposed here
+
+        // Build final list with correct flags
+        var connectors = new List<ConnectorDto>();
+        foreach (var data in connectorData)
+        {
+            var hasFlags = new Dictionary<string, bool>
+            {
+                [SecretKinds.BearerToken] = false,
+                [SecretKinds.ApiKeyValue] = false,
+                [SecretKinds.BasicPassword] = false
+            };
             
-            // Get has* flags from secrets table
-            var hasFlags = await GetHasSecretsFlagsAsync(connection, id);
+            if (secretsByConnector.TryGetValue(data.id, out var secrets))
+            {
+                hasFlags = secrets;
+            }
             
             connectors.Add(MapToDto(
-                id: id,
-                name: reader.GetString(1),
-                baseUrl: reader.GetString(2),
-                authType: reader.GetString(3),
-                authConfigJson: authConfigJson,
-                requestDefaultsJson: requestDefaultsJson,
-                timeoutSeconds: reader.GetInt32(6),
-                enabled: reader.GetInt32(7) == 1,
+                id: data.id,
+                name: data.name,
+                baseUrl: data.baseUrl,
+                authType: data.authType,
+                authConfigJson: data.authConfigJson,
+                requestDefaultsJson: data.requestDefaultsJson,
+                timeoutSeconds: data.timeoutSeconds,
+                enabled: data.enabled,
                 hasFlags: hasFlags
             ));
         }
@@ -72,7 +122,7 @@ public sealed class ConnectorRepository : IConnectorRepository
         return connectors;
     }
 
-    public async Task<ConnectorDto?> GetConnectorByIdAsync(string id)
+    public async Task<ConnectorDto?> GetConnectorByIdAsync(string connectorId)
     {
         using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync();
@@ -82,32 +132,48 @@ public sealed class ConnectorRepository : IConnectorRepository
             SELECT id, name, baseUrl, authType, authConfigJson, requestDefaultsJson, timeoutSeconds, enabled 
             FROM Connector 
             WHERE id = @id";
-        command.Parameters.AddWithValue("@id", id);
+        command.Parameters.AddWithValue("@id", connectorId);
 
-        using var reader = await command.ExecuteReaderAsync();
+        ConnectorDto? result = null;
+        string? id = null, name = null, baseUrl = null, authType = null;
+        string? authConfigJson = null, requestDefaultsJson = null;
+        int timeoutSeconds = 0;
+        bool enabled = false;
         
-        if (await reader.ReadAsync())
+        using (var reader = await command.ExecuteReaderAsync())
         {
-            var authConfigJson = reader.IsDBNull(4) ? null : reader.GetString(4);
-            var requestDefaultsJson = reader.IsDBNull(5) ? null : reader.GetString(5);
+            if (await reader.ReadAsync())
+            {
+                id = reader.GetString(0);
+                name = reader.GetString(1);
+                baseUrl = reader.GetString(2);
+                authType = reader.GetString(3);
+                authConfigJson = reader.IsDBNull(4) ? null : reader.GetString(4);
+                requestDefaultsJson = reader.IsDBNull(5) ? null : reader.GetString(5);
+                timeoutSeconds = reader.GetInt32(6);
+                enabled = reader.GetInt32(7) == 1;
+            }
+        } // Reader is disposed here
+
+        // If found, fetch secrets (now safe to execute another command)
+        if (id != null)
+        {
+            var hasFlags = await GetHasSecretsFlagsAsync(connection, connectorId);
             
-            // Get has* flags from secrets table
-            var hasFlags = await GetHasSecretsFlagsAsync(connection, id);
-            
-            return MapToDto(
+            result = MapToDto(
                 id: id,
-                name: reader.GetString(1),
-                baseUrl: reader.GetString(2),
-                authType: reader.GetString(3),
+                name: name!,
+                baseUrl: baseUrl!,
+                authType: authType!,
                 authConfigJson: authConfigJson,
                 requestDefaultsJson: requestDefaultsJson,
-                timeoutSeconds: reader.GetInt32(6),
-                enabled: reader.GetInt32(7) == 1,
+                timeoutSeconds: timeoutSeconds,
+                enabled: enabled,
                 hasFlags: hasFlags
             );
         }
 
-        return null;
+        return result;
     }
 
     public async Task<ConnectorDto> CreateConnectorAsync(

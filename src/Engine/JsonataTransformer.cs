@@ -53,8 +53,9 @@ public sealed class JsonataTransformer : IDslTransformer
                 throw CreateTransformFailed(ex, dslText);
             }
 
-            // Trata "undefined/nothing" como null (evita parse falho) :contentReference[oaicite:7]{index=7}
-            if (string.IsNullOrWhiteSpace(resultJson))
+            // Trata "undefined/nothing" como null (evita parse falho)
+            // Jsonata can return literal "undefined" string or JSON string '"undefined"'
+            if (string.IsNullOrWhiteSpace(resultJson) || resultJson == "undefined" || resultJson == "\"undefined\"")
                 return JsonSerializer.SerializeToElement<object?>(null);
 
             // Evita lifetime issues do JsonDocument

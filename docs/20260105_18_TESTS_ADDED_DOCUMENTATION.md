@@ -250,7 +250,7 @@ Os testes **requerem API key** do OpenRouter. Configuração em ordem de preced�
 
 **Como executar**:
 ```powershell
-$env:METRICS_OPENROUTER_API_KEY = "sk-or-v1-YOUR_KEY"
+$env:METRICS_OPENROUTER_API_KEY = "*********-YOUR_KEY"
 dotnet test --filter "IT05"
 ```
 
@@ -418,19 +418,19 @@ dotnet test tests/Integration.Tests/IT04_ProcessVersionLifecycleTests.cs
 
 ### Apenas IT05 (LLM)
 ```powershell
-$env:METRICS_OPENROUTER_API_KEY = "sk-or-v1-YOUR_KEY"
+$env:METRICS_OPENROUTER_API_KEY = "*********-YOUR_KEY"
 dotnet test tests/Integration.Tests/IT05_RealLlmIntegrationTests.cs
 ```
 
 ### Todos (IT04 + IT05)
 ```powershell
-$env:METRICS_OPENROUTER_API_KEY = "sk-or-v1-YOUR_KEY"
+$env:METRICS_OPENROUTER_API_KEY = "*********-YOUR_KEY"
 dotnet test --filter "IT04 or IT05"
 ```
 
 ### Suite Completa
 ```powershell
-$env:METRICS_OPENROUTER_API_KEY = "sk-or-v1-YOUR_KEY"
+$env:METRICS_OPENROUTER_API_KEY = "*********-YOUR_KEY"
 dotnet test
 # Resultado esperado: 141/141 passing
 ```

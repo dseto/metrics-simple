@@ -91,23 +91,68 @@ public class HttpOpenAiCompatibleProvider : IAiProvider
     {
         var retryCount = 0;
         var maxRetries = _config.MaxRetries;
+        DslErrorClassifier.ErrorCategory? lastErrorCategory = null;
+        var requestId = Guid.NewGuid().ToString("N")[..12];
 
         while (true)
         {
             try
             {
-                return await ExecuteRequestAsync(request, ct);
+                _logger.LogInformation(
+                    "DSL generation attempt {Attempt}/{MaxRetries}: RequestId={RequestId}, Model={Model}, GoalLength={GoalLength}",
+                    retryCount + 1, maxRetries, requestId, _config.Model, request.GoalText.Length);
+
+                return await ExecuteRequestAsync(request, ct, requestId, retryCount + 1);
+            }
+            catch (AiProviderException aex) when (retryCount < maxRetries)
+            {
+                // Classify the error
+                var errorCategory = DslErrorClassifier.Classify(aex.Message, aex.ErrorCode);
+                
+                _logger.LogWarning(
+                    "DSL generation failed on attempt {Attempt}: ErrorCode={Code}, ErrorCategory={Category}, Message={Message}, RequestId={RequestId}",
+                    retryCount + 1, aex.ErrorCode, errorCategory, aex.Message, requestId);
+
+                // Check if same error is repeating
+                if (lastErrorCategory == errorCategory)
+                {
+                    _logger.LogWarning(
+                        "Same error category detected twice ({Category}). Stopping retry. RequestId={RequestId}",
+                        errorCategory, requestId);
+                    throw;
+                }
+
+                lastErrorCategory = errorCategory;
+
+                // Only retry if error is retryable
+                if (!DslErrorClassifier.IsRetryable(errorCategory))
+                {
+                    _logger.LogError(
+                        "Error category {Category} is not retryable. Giving up. RequestId={RequestId}",
+                        errorCategory, requestId);
+                    throw;
+                }
+
+                retryCount++;
+                var backoffMs = 500 * retryCount;  // Increased backoff
+                _logger.LogInformation(
+                    "Retrying in {BackoffMs}ms... (attempt {Attempt}/{MaxRetries}) RequestId={RequestId}",
+                    backoffMs, retryCount + 1, maxRetries, requestId);
+                
+                await Task.Delay(TimeSpan.FromMilliseconds(backoffMs), ct);
             }
             catch (Exception ex) when (IsTransientError(ex) && retryCount < maxRetries)
             {
                 retryCount++;
-                _logger.LogWarning(ex, "Transient error on attempt {Attempt}, retrying after backoff", retryCount);
+                _logger.LogWarning(ex, 
+                    "Transient error on attempt {Attempt}/{MaxRetries}, retrying after backoff. RequestId={RequestId}",
+                    retryCount + 1, maxRetries, requestId);
                 await Task.Delay(TimeSpan.FromMilliseconds(250 * retryCount), ct);
             }
         }
     }
 
-    private async Task<DslGenerateResult> ExecuteRequestAsync(DslGenerateRequest request, CancellationToken ct)
+    private async Task<DslGenerateResult> ExecuteRequestAsync(DslGenerateRequest request, CancellationToken ct, string requestId, int attemptNumber)
     {
         var systemPrompt = BuildSystemPrompt(request);
         var userPrompt = BuildUserPrompt(request);
@@ -122,8 +167,9 @@ public class HttpOpenAiCompatibleProvider : IAiProvider
         httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
         httpRequest.Content = content;
 
-        _logger.LogInformation("Sending request to AI provider: {Endpoint}, Model: {Model}, StructuredOutputs: {Structured}",
-            _config.EndpointUrl, _config.Model, _config.EnableStructuredOutputs);
+        _logger.LogInformation(
+            "Sending HTTP request to AI provider (attempt {Attempt}): Endpoint={Endpoint}, Model={Model}, StructuredOutputs={Structured}, RequestId={RequestId}",
+            attemptNumber, _config.EndpointUrl, _config.Model, _config.EnableStructuredOutputs, requestId);
 
         HttpResponseMessage response;
         try
@@ -158,14 +204,15 @@ public class HttpOpenAiCompatibleProvider : IAiProvider
         if (!response.IsSuccessStatusCode)
         {
             var errorBody = await response.Content.ReadAsStringAsync(ct);
-            _logger.LogError("AI provider error: {StatusCode} - {Body}", response.StatusCode, errorBody);
+            _logger.LogError("AI provider HTTP error (attempt {Attempt}): {StatusCode} - {Body}, RequestId={RequestId}", 
+                attemptNumber, response.StatusCode, errorBody, requestId);
             throw new AiProviderException(AiErrorCodes.AiProviderUnavailable,
                 $"AI provider returned error: {response.StatusCode}");
         }
 
-        // Parse response
+        // Parse response with resilient parsing
         var responseBody = await response.Content.ReadAsStringAsync(ct);
-        return ParseChatCompletionResponse(responseBody, request);
+        return ParseChatCompletionResponse(responseBody, request, requestId, attemptNumber);
     }
 
     /// <summary>
@@ -217,7 +264,7 @@ public class HttpOpenAiCompatibleProvider : IAiProvider
         return requestObj;
     }
 
-    private DslGenerateResult ParseChatCompletionResponse(string responseBody, DslGenerateRequest request)
+    private DslGenerateResult ParseChatCompletionResponse(string responseBody, DslGenerateRequest request, string requestId, int attemptNumber)
     {
         try
         {
@@ -247,12 +294,21 @@ public class HttpOpenAiCompatibleProvider : IAiProvider
                     "AI provider returned empty content");
             }
 
-            // Clean up markdown code blocks if present
-            contentString = CleanJsonContent(contentString);
+            // Use resilient parsing with 3-strategy fallback
+            _logger.LogDebug("Attempt to parse LLM response (attempt {Attempt}, RequestId={RequestId}): Content length={Length}", 
+                attemptNumber, requestId, contentString.Length);
+            
+            var (parseSuccess, parsedContent, errorCategory, errorDetails) = LlmResponseParser.TryParseJsonResponse(contentString);
+            if (!parseSuccess)
+            {
+                _logger.LogWarning(
+                    "Failed to parse LLM response with resilient parser (attempt {Attempt}, RequestId={RequestId}): {Category} - {Details}",
+                    attemptNumber, requestId, errorCategory, errorDetails);
+                throw new AiProviderException(AiErrorCodes.AiOutputInvalid,
+                    $"Failed to parse LLM response as JSON: {errorCategory} - {errorDetails}");
+            }
 
-            // Parse the content as JSON
-            using var contentDoc = JsonDocument.Parse(contentString);
-            var contentRoot = contentDoc.RootElement;
+            var contentRoot = parsedContent!.Value;
 
             // Extract and validate DSL
             if (!contentRoot.TryGetProperty("dsl", out var dslElement))
@@ -275,64 +331,49 @@ public class HttpOpenAiCompatibleProvider : IAiProvider
                     "AI provider response missing 'dsl.text'");
             }
 
-            // Extract and validate outputSchema
-            if (!contentRoot.TryGetProperty("outputSchema", out var schemaElement))
+            // ⚠️ IMPORTANT: LLM may provide outputSchema (old contract) or not (new contract).
+            // We accept BOTH gracefully but always infer schema server-side from actual preview output.
+            var outputSchema = JsonSerializer.SerializeToElement(new { });
+            
+            if (contentRoot.TryGetProperty("outputSchema", out var schemaElement))
             {
-                throw new AiProviderException(AiErrorCodes.AiOutputInvalid,
-                    "AI provider response missing 'outputSchema' property");
-            }
-
-            // If outputSchema is a string, parse it
-            JsonElement outputSchema;
-            if (schemaElement.ValueKind == JsonValueKind.String)
-            {
-                var schemaString = schemaElement.GetString()!;
-                var originalSchemaString = schemaString;
+                _logger.LogInformation("LLM returned old contract (with outputSchema). Accepting for backward compatibility, but backend will infer from preview");
                 
-                // Try to parse, and if it fails, attempt to fix common LLM mistakes
-                schemaString = TryFixMalformedJson(schemaString);
-                
-                // Log if repair was applied
-                if (schemaString != originalSchemaString)
+                // Parse if it's a string, otherwise use as-is
+                if (schemaElement.ValueKind == JsonValueKind.String)
                 {
-                    _logger.LogWarning("Applied JSON repair to outputSchema. Original length: {OriginalLength}, Fixed length: {FixedLength}",
-                        originalSchemaString.Length, schemaString.Length);
+                    var schemaString = schemaElement.GetString()!;
+                    var (schemaParse, schemaParsed, _, _) = LlmResponseParser.TryParseJsonResponse(schemaString);
+                    if (schemaParse)
+                    {
+                        outputSchema = schemaParsed!.Value;
+                    }
                 }
-                
-                _logger.LogDebug("Parsing outputSchema string: {SchemaString}", schemaString);
-                try
+                else if (schemaElement.ValueKind == JsonValueKind.Object)
                 {
-                    using var schemaDoc = JsonDocument.Parse(schemaString);
-                    outputSchema = schemaDoc.RootElement.Clone();
-                }
-                catch (JsonException ex)
-                {
-                    _logger.LogError(ex, "Failed to parse outputSchema string: {SchemaString}", schemaString);
-                    throw new AiProviderException(AiErrorCodes.AiOutputInvalid,
-                        $"outputSchema is not valid JSON: {ex.Message}. Raw: {schemaString[..Math.Min(200, schemaString.Length)]}", ex);
+                    outputSchema = schemaElement.Clone();
                 }
             }
             else
             {
-                outputSchema = schemaElement.Clone();
+                _logger.LogDebug("LLM returned new contract (without outputSchema)");
             }
 
-            // Validate outputSchema is an object
-            if (outputSchema.ValueKind != JsonValueKind.Object)
-            {
-                throw new AiProviderException(AiErrorCodes.AiOutputInvalid,
-                    "outputSchema must be a JSON object");
-            }
-
-            // Extract rationale
-            var rationale = contentRoot.TryGetProperty("rationale", out var rationaleEl)
-                ? rationaleEl.GetString() ?? ""
+            // Extract notes (optional, replaces "rationale")
+            var notes = contentRoot.TryGetProperty("notes", out var notesEl)
+                ? notesEl.GetString() ?? ""
                 : "";
 
-            // Truncate rationale if too long
-            if (rationale.Length > 500)
+            // Try to get "rationale" for backward compatibility with old LLM responses
+            if (string.IsNullOrWhiteSpace(notes) && contentRoot.TryGetProperty("rationale", out var rationaleEl))
             {
-                rationale = rationale[..500] + "...";
+                notes = rationaleEl.GetString() ?? "";
+            }
+
+            // Truncate notes if too long
+            if (notes.Length > 500)
+            {
+                notes = notes[..500] + "...";
             }
 
             // Extract warnings
@@ -358,6 +399,9 @@ public class HttpOpenAiCompatibleProvider : IAiProvider
                 exampleRows = exampleRowsEl.Clone();
             }
 
+            _logger.LogInformation("Successfully parsed DSL from LLM response (attempt {Attempt}, RequestId={RequestId}): DSL length={DslLength}, Profile={Profile}",
+                attemptNumber, requestId, text.Length, profile);
+
             return new DslGenerateResult
             {
                 Dsl = new DslOutput
@@ -367,7 +411,7 @@ public class HttpOpenAiCompatibleProvider : IAiProvider
                 },
                 OutputSchema = outputSchema,
                 ExampleRows = exampleRows,
-                Rationale = rationale,
+                Rationale = notes,
                 Warnings = warnings,
                 ModelInfo = new ModelInfo
                 {
@@ -379,7 +423,7 @@ public class HttpOpenAiCompatibleProvider : IAiProvider
         }
         catch (JsonException ex)
         {
-            _logger.LogError(ex, "Failed to parse AI provider response as JSON");
+            _logger.LogError(ex, "Failed to parse AI provider response as JSON (RequestId provided in context)");
             throw new AiProviderException(AiErrorCodes.AiOutputInvalid,
                 $"Failed to parse AI response as JSON: {ex.Message}", ex);
         }
@@ -622,6 +666,30 @@ public class HttpOpenAiCompatibleProvider : IAiProvider
             - Output MUST be pure JSON matching the schema below
 
             ═══════════════════════════════════════════════════════════════════════════════
+            CRITICAL: ANALYZE SAMPLE INPUT STRUCTURE BEFORE WRITING DSL
+            ═══════════════════════════════════════════════════════════════════════════════
+
+            MANDATORY WORKFLOW:
+            1. FIRST, carefully analyze the SAMPLE INPUT DATA structure provided
+            2. IDENTIFY the exact path to each field you need to reference
+            3. VERIFY paths exist in the sample before using them in DSL
+            4. NEVER assume paths - use only paths that EXIST in the sample
+
+            PATH VERIFICATION RULES:
+            - If data is at "results.forecast" in sample, use "results.forecast" NOT just "forecast"
+            - If data is nested (e.g. object "results" containing "data" array), path is "results.data" NOT "data"
+            - If root is an array, iterate directly; if root is object with array property, use that path
+            - ALWAYS trace the full path from root to target field in the sample
+
+            COMMON PATH MISTAKES TO AVOID:
+            ❌ Using "forecast" when sample shows object with results.forecast nested
+               → Use "results.forecast" instead
+            ❌ Using "data" when sample shows object with response.data nested  
+               → Use "response.data" instead
+            ❌ Assuming array is at root when sample shows object containing "items" array
+               → Use "items" as the array path
+
+            ═══════════════════════════════════════════════════════════════════════════════
             CRITICAL JSONATA DIALECT RULES (STRICT - violations cause compilation errors)
             ═══════════════════════════════════════════════════════════════════════════════
 
@@ -672,6 +740,16 @@ public class HttpOpenAiCompatibleProvider : IAiProvider
                ❌ INVALID: [{ "total": $sum(sales.quantity) }]            -- DO NOT wrap in []
                The engine will automatically wrap single objects in an array for CSV output.
 
+            10. ARITHMETIC ON COLLECTIONS: When performing arithmetic on array elements:
+               ✅ VALID:   $average(items.((max + min) / 2))              -- double parentheses for expression
+               ✅ VALID:   $sum(items.(price * quantity))                 -- single parentheses for simple expression
+               ❌ INVALID: $average(items.(max + min) / 2)                -- / 2 outside the mapping context
+               ❌ INVALID: $average(items.max + items.min) / 2            -- wrong structure
+               
+               RULE: When mapping an expression over an array, wrap the ENTIRE expression in parentheses
+               Example: To average (max+min)/2 for each item in "results.forecast":
+               ✅ $average(results.forecast.((max + min) / 2))
+
             ═══════════════════════════════════════════════════════════════════════════════
             RESPONSE FORMAT (JSON only, no markdown)
             ═══════════════════════════════════════════════════════════════════════════════
@@ -682,13 +760,12 @@ public class HttpOpenAiCompatibleProvider : IAiProvider
                 "profile": "{{request.DslProfile}}",
                 "text": "YOUR_JSONATA_EXPRESSION_HERE"
               },
-              "outputSchema": "STRINGIFIED_JSON_SCHEMA_HERE",
-              "rationale": "Brief explanation of transformation logic",
+              "notes": "Optional notes about the transformation",
               "warnings": []
             }
 
-            CRITICAL: outputSchema MUST be a JSON STRING (stringified JSON with escaped quotes).
-            Do NOT return outputSchema as an object - stringify it first.
+            ⚠️ IMPORTANT: Do NOT include "outputSchema" in your response.
+            The server will automatically infer the output schema from the transformation result.
 
             ═══════════════════════════════════════════════════════════════════════════════
             CONSTRAINTS
@@ -716,6 +793,15 @@ public class HttpOpenAiCompatibleProvider : IAiProvider
         sb.AppendLine("═══════════════════════════════════════════════════════════════════════════════");
         var sampleInputJson = JsonSerializer.Serialize(request.SampleInput, new JsonSerializerOptions { WriteIndented = true });
         sb.AppendLine(TruncateSampleInput(sampleInputJson, 500_000));
+        sb.AppendLine();
+
+        // Add structure analysis to help LLM understand paths
+        sb.AppendLine("═══════════════════════════════════════════════════════════════════════════════");
+        sb.AppendLine("INPUT STRUCTURE ANALYSIS (use these exact paths in your DSL):");
+        sb.AppendLine("═══════════════════════════════════════════════════════════════════════════════");
+        sb.AppendLine(AnalyzeJsonStructure(request.SampleInput, "", 0));
+        sb.AppendLine();
+        sb.AppendLine("REMINDER: Use the EXACT paths shown above. Do not shorten or assume paths.");
         sb.AppendLine();
 
         // Existing DSL for repair attempts
@@ -774,6 +860,97 @@ public class HttpOpenAiCompatibleProvider : IAiProvider
         // Simple truncation - take first N chars that fit
         var chars = maxBytes / 3; // conservative estimate for UTF-8
         return json[..chars] + "... [TRUNCATED - input too large]";
+    }
+
+    /// <summary>
+    /// Analyzes JSON structure and returns a human-readable path map.
+    /// This helps the LLM understand the exact paths to use in DSL expressions.
+    /// </summary>
+    private static string AnalyzeJsonStructure(JsonElement element, string currentPath, int depth, int maxDepth = 4)
+    {
+        if (depth > maxDepth) return "";
+        
+        var sb = new StringBuilder();
+        var indent = new string(' ', depth * 2);
+        
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+                foreach (var prop in element.EnumerateObject())
+                {
+                    var propPath = string.IsNullOrEmpty(currentPath) ? prop.Name : $"{currentPath}.{prop.Name}";
+                    
+                    if (prop.Value.ValueKind == JsonValueKind.Array)
+                    {
+                        var arrayLen = prop.Value.GetArrayLength();
+                        sb.AppendLine($"{indent}• {propPath} : Array[{arrayLen}]  ← use this path to iterate");
+                        
+                        // Show first element structure if array has items
+                        if (arrayLen > 0)
+                        {
+                            var firstElement = prop.Value[0];
+                            if (firstElement.ValueKind == JsonValueKind.Object)
+                            {
+                                sb.AppendLine($"{indent}  Each item has fields:");
+                                foreach (var itemProp in firstElement.EnumerateObject())
+                                {
+                                    var typeName = GetJsonTypeName(itemProp.Value);
+                                    sb.AppendLine($"{indent}    - {itemProp.Name} : {typeName}");
+                                }
+                            }
+                        }
+                    }
+                    else if (prop.Value.ValueKind == JsonValueKind.Object)
+                    {
+                        sb.AppendLine($"{indent}• {propPath} : Object");
+                        sb.Append(AnalyzeJsonStructure(prop.Value, propPath, depth + 1, maxDepth));
+                    }
+                    else
+                    {
+                        var typeName = GetJsonTypeName(prop.Value);
+                        sb.AppendLine($"{indent}• {propPath} : {typeName}");
+                    }
+                }
+                break;
+                
+            case JsonValueKind.Array:
+                var len = element.GetArrayLength();
+                var pathLabel = string.IsNullOrEmpty(currentPath) ? "(root)" : currentPath;
+                sb.AppendLine($"{indent}• {pathLabel} : Array[{len}]  ← root is an array, iterate directly");
+                
+                if (len > 0 && element[0].ValueKind == JsonValueKind.Object)
+                {
+                    sb.AppendLine($"{indent}  Each item has fields:");
+                    foreach (var itemProp in element[0].EnumerateObject())
+                    {
+                        var typeName = GetJsonTypeName(itemProp.Value);
+                        sb.AppendLine($"{indent}    - {itemProp.Name} : {typeName}");
+                    }
+                }
+                break;
+                
+            default:
+                var rootType = GetJsonTypeName(element);
+                sb.AppendLine($"{indent}• (root) : {rootType}");
+                break;
+        }
+        
+        return sb.ToString();
+    }
+    
+    private static string GetJsonTypeName(JsonElement element)
+    {
+        return element.ValueKind switch
+        {
+            JsonValueKind.String => "String",
+            JsonValueKind.Number => "Number",
+            JsonValueKind.True => "Boolean",
+            JsonValueKind.False => "Boolean",
+            JsonValueKind.Null => "Null",
+            JsonValueKind.Array => $"Array[{element.GetArrayLength()}]",
+            JsonValueKind.Object => "Object",
+            _ => "Unknown"
+        };
     }
 
     private static bool IsTransientError(Exception ex)

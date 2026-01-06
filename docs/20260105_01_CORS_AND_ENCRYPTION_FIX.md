@@ -31,7 +31,7 @@ Additionally, the logs showed the API itself (`http://localhost:8080`) was not w
   ```
   # Token Encryption Key (required for connector API token encryption)
   # 32-byte base64 encoded key for AES-256-GCM
-  METRICS_SECRET_KEY=OAOpJLUztC0jfxFmz7/myR7zME6Vdfhvyfky1p6i0mM=
+  METRICS_SECRET_KEY=*********
   ```
 
 - Set in local Windows user environment variables for immediate availability

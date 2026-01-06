@@ -36,17 +36,49 @@
 
 ---
 
-## � 2026-01-05 (Sessão Atual - Testes de Versão)
+## 🔄 2026-01-05 (Sessão Atual - Testes de Versão + DSL Improvements)
 
 | # | Arquivo | Propósito | Status |
 |---|---------|-----------|--------|
 | 01 | `20260105_01_DOCKER_REBUILD_COMPLETE.md` | Rebuild completo com todas as correções | ✅ |
+| 01 | `20260105_01_REAL_WORLD_PREVIEW_TRANSFORM_TESTS.md` | **NOVO**: Definição de 8 test cases reais com HGBrasil API | ✅ |
+| 02 | `20260105_02_REAL_WORLD_API_TESTING_REPORT.md` | **NOVO**: Relatório de execução dos testes reais | ✅ |
+| 03 | `20260105_03_DSL_GENERATION_IMPROVEMENTS_SUMMARY.md` | **NOVO**: Sumário executivo das melhorias de LLM prompt | ✅ |
 | 06 | `20260105_06_DOCKER_REBUILD_DEPLOYMENT_COMPLETE.md` | Relatório de deployment completo | ✅ |
 | 07 | `20260105_07_VERSION_TYPE_FIX.md` | Fix crítico: tipo Version string → int | ✅ |
 | 08 | `20260105_08_VERSION_LIFECYCLE_TESTS.md` | Suite completa IT04: 12 testes de versão | ✅ |
 | 09 | `20260105_09_VERSION_LIFECYCLE_TESTS_COMPLETE.md` | Sumário executivo: implementação completa IT04 | ✅ |
 | 10 | `20260105_10_RELEASE_NOTES.md` | Release notes: features, fixes, integração | ✅ |
 | 11 | `20260105_11_DOCKER_DEPLOYMENT_FINAL.md` | Relatório final: rebuild e deployment Docker | ✅ |
+
+---
+
+## 📊 Melhorias de DSL Generation - Resumo Executivo
+
+**Objetivo**: Melhorar qualidade da geração de DSL JSONata via LLM prompt engineering
+
+**Problema Identificado**:
+- DSL gerado incorretamente: `forecast` em vez de `results.forecast`
+- Sintaxe de aritmética incompleta: `.(max + min) / 2` em vez de `.((max + min) / 2)`
+- Solução anterior com hardcodes `TryAutoFixDsl()` era inadequada
+
+**Solução Implementada**:
+1. ✅ Reverter hardcodes de `Program.cs`
+2. ✅ Melhorar `BuildSystemPrompt()` com análise de estrutura
+3. ✅ Melhorar `BuildUserPrompt()` com mapeamento automático de paths
+4. ✅ Adicionar método `AnalyzeJsonStructure()` para extrair paths do JSON
+
+**Resultado**:
+- 141 testes passando (0 falhas)
+- Build success com 0 errors
+- Preview/transform endpoint funcionando corretamente
+- 8 test cases reais definidos e prontos para validação
+
+**Documentos Relacionados**:
+- [`20260105_01_REAL_WORLD_PREVIEW_TRANSFORM_TESTS.md`](20260105_01_REAL_WORLD_PREVIEW_TRANSFORM_TESTS.md) - Test cases
+- [`20260105_02_REAL_WORLD_API_TESTING_REPORT.md`](20260105_02_REAL_WORLD_API_TESTING_REPORT.md) - Test results  
+- [`20260105_03_DSL_GENERATION_IMPROVEMENTS_SUMMARY.md`](20260105_03_DSL_GENERATION_IMPROVEMENTS_SUMMARY.md) - Implementation details
+
 ---
 
 ## �🔍 Como Usar Este Index

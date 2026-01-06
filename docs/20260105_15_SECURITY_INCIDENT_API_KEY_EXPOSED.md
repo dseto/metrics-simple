@@ -10,7 +10,7 @@
 An OpenRouter API key was accidentally committed to a public GitHub repository and detected by OpenRouter's automated security scanning system.
 
 ### Key Details
-- **Exposed Key**: `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`
+- **Exposed Key**: `*********-b126b457ae6a5565e938c3d6ac7841b246956d7588115333a61e90a0dd84767d`
 - **Status**: ⚠️ **REVOKED** (automatically disabled by OpenRouter)
 - **Discovered In**: 
   - Repository: `github.com/dseto/metrics-simple` (public)
@@ -122,7 +122,7 @@ An OpenRouter API key was accidentally committed to a public GitHub repository a
 ```
 1. Go to https://openrouter.ai/keys
 2. Create new API key
-3. Copy the key (starts with sk-or-v1-...)
+3. Copy the key (starts with *********-...)
 4. Keep it safe - DO NOT share or commit
 ```
 
@@ -131,14 +131,14 @@ An OpenRouter API key was accidentally committed to a public GitHub repository a
 **Option A: Environment Variable (Recommended)**
 ```powershell
 # In your terminal before running tests
-$env:METRICS_OPENROUTER_API_KEY = "sk-or-v1-YOUR_NEW_KEY_HERE"
+$env:METRICS_OPENROUTER_API_KEY = "*********-YOUR_NEW_KEY_HERE"
 dotnet test
 ```
 
 **Option B: .runsettings File (Local Only)**
 ```xml
 <!-- .runsettings (do not commit) -->
-<METRICS_OPENROUTER_API_KEY>sk-or-v1-YOUR_NEW_KEY_HERE</METRICS_OPENROUTER_API_KEY>
+<METRICS_OPENROUTER_API_KEY>*********-YOUR_NEW_KEY_HERE</METRICS_OPENROUTER_API_KEY>
 ```
 ```powershell
 dotnet test --settings .runsettings
@@ -147,7 +147,7 @@ dotnet test --settings .runsettings
 **Option C: .env File (Local Only)**
 ```bash
 # .env file (already in .gitignore)
-METRICS_OPENROUTER_API_KEY=sk-or-v1-YOUR_NEW_KEY_HERE
+METRICS_OPENROUTER_API_KEY=*********-YOUR_NEW_KEY_HERE
 ```
 
 ### 3. Verify Setup

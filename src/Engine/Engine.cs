@@ -32,11 +32,14 @@ public sealed class EngineService
             // Step 2: Normalize output to rows array (per dsl-engine.md)
             var rows = NormalizeRowsToArray(output);
 
-            // Step 3: Validate normalized output against schema
-            var (isValid, errors) = _schemaValidator.ValidateAgainstSchema(rows, outputSchema);
-            if (!isValid)
+            // Step 3: Validate normalized output against schema (skip if schema is empty {})
+            if (outputSchema.GetRawText() != "{}")
             {
-                return new TransformResult(false, null, errors, null);
+                var (isValid, errors) = _schemaValidator.ValidateAgainstSchema(rows, outputSchema);
+                if (!isValid)
+                {
+                    return new TransformResult(false, null, errors, null);
+                }
             }
 
             // Step 4: Resolve column order from outputSchema (per csv-format.md)
