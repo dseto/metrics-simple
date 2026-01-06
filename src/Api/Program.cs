@@ -2,6 +2,7 @@ using System.Text.Json;
 using Metrics.Api;
 using Metrics.Api.AI;
 using Metrics.Api.AI.Engines;
+using Metrics.Api.AI.Engines.PlanV1;
 using Metrics.Api.Auth;
 using Metrics.Engine;
 using Serilog;
@@ -159,9 +160,30 @@ builder.Services.AddScoped<LegacyAiDslEngine>(sp => new LegacyAiDslEngine(
     sp.GetRequiredService<EngineService>(),
     Log.ForContext<LegacyAiDslEngine>()));
 
-builder.Services.AddScoped<PlanV1AiEngine>(sp => new PlanV1AiEngine(
-    Log.ForContext<PlanV1AiEngine>(),
-    sp.GetRequiredService<EngineService>()));
+// PlanV1AiEngine - optionally with LLM provider if API key is available
+builder.Services.AddScoped<PlanV1AiEngine>(sp =>
+{
+    var apiKey = Environment.GetEnvironmentVariable("METRICS_OPENROUTER_API_KEY")
+                 ?? Environment.GetEnvironmentVariable("OPENROUTER_API_KEY");
+    
+    PlanV1LlmProvider? llmProvider = null;
+    if (!string.IsNullOrEmpty(apiKey))
+    {
+        llmProvider = new PlanV1LlmProvider(
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient("AI"),
+            sp.GetRequiredService<AiConfiguration>(),
+            sp.GetRequiredService<ILogger<PlanV1LlmProvider>>());
+    }
+    else
+    {
+        Log.Warning("No API key configured for PlanV1 LLM - falling back to template-only mode");
+    }
+    
+    return new PlanV1AiEngine(
+        Log.ForContext<PlanV1AiEngine>(),
+        sp.GetRequiredService<EngineService>(),
+        llmProvider);
+});
 
 builder.Services.AddScoped<AiEngineRouter>(sp => new AiEngineRouter(
     sp.GetRequiredService<LegacyAiDslEngine>(),
