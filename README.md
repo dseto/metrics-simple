@@ -1,42 +1,38 @@
-## Como rodar com Docker
+# Delta Spec Deck — Plan Engine (IR v1) paralelo ao Jsonata (legacy)
 
-Este projeto inclui suporte completo para execução via Docker e Docker Compose, utilizando imagens .NET 8.0.x e SQLite.
+**Data**: 2026-01-06  
+**Versão**: 1.0  
+**Objetivo**: Adicionar um novo motor de transformação **PlanEngine (IR v1)** como opção incremental ao motor atual (legacy Jsonata/LLM), no **mesmo endpoint** `/api/v1/ai/dsl/generate`, com roteamento por parâmetro `engine` e configuração/feature flag.
 
-### Requisitos específicos
-- **.NET SDK/ASP.NET:** Versão 8.0.11 (conforme `Api.csproj` e Dockerfiles)
-- **SQLite:** Persistência local via container `nouchka/sqlite3:latest`, com o arquivo de banco em `src/Api/config/config.db`
+## Por que este delta existe
+O motor legacy (LLM → Jsonata) é frágil para:
+- dialeto Jsonata (alucinação de sintaxe, shape incorreto)
+- APIs com JSON variado (arrayPath/campos variam)
+- confiabilidade (502 em casos simples)
 
-### Serviços e portas
-- **csharp-api** (ASP.NET Core):
-  - Porta exposta: `8080` (mapeada para o host)
-  - Depende do serviço `sqlite`
-- **csharp-runner** (CLI):
-  - Não expõe portas
-  - Depende do serviço `sqlite`
-- **sqlite** (SQLite DB):
-  - Persistência: volume local `./src/Api/config:/data`
-  - Banco: `/data/config.db`
+O PlanEngine muda o papel da LLM:
+- LLM gera um **plano JSON validável** (IR) — não uma DSL textual
+- Backend executa o plano **deterministicamente** (sem depender da LLM acertar sintaxe)
+- Continua possível compilar/retornar `dsl.text` por compatibilidade
 
-### Variáveis de ambiente
-- Os containers já definem variáveis essenciais:
-  - `ASPNETCORE_URLS=http://+:8080`
-  - `DOTNET_RUNNING_IN_CONTAINER=true`
-- Para configurações adicionais, utilize arquivos `.env` em `./src/Api` ou `./src/Runner` (opcional, descomentando no `docker-compose.yml`)
+## Escopo do PlanEngine v1
+Operações suportadas (suficientes para cobrir IT13 e 80% dos casos comuns):
+- `select` (projeção + rename)
+- `filter` (condições simples)
+- `compute` (expressões aritméticas simples, ex.: `price * quantity`)
+- `mapValue` (tradução por dicionário, ex.: pending→Pendente)
+- `groupBy` + `aggregate` (sum/count/avg/min/max)
+- `sort` (asc/desc por campo)
+- `limit` (opcional)
 
-### Instruções de build e execução
-1. Certifique-se de que o Docker e o Docker Compose estão instalados.
-2. Execute na raiz do projeto:
-   ```sh
-   docker compose up --build
-   ```
-   Isso irá:
-   - Construir as imagens dos serviços `csharp-api` e `csharp-runner` usando os Dockerfiles específicos
-   - Inicializar o banco SQLite e mapear o volume para persistência
-   - Expor a API em `http://localhost:8080`
+## Não-objetivos (v1)
+- joins entre arrays distintos
+- expressões arbitrárias/execução de código
+- suporte total a todos formatos de data/hora
+- UI/Front-end
 
-### Configuração especial
-- O banco SQLite é compartilhado entre API e runner via volume local (`src/Api/config/config.db`).
-- Para persistência, não remova o diretório `src/Api/config`.
-- Para customizar variáveis, crie um arquivo `.env` conforme necessidade e descomente a linha `env_file` no `docker-compose.yml`.
-
-> Consulte os contratos e exemplos em `specs/shared/` para integração e uso da API.
+## Conteúdo
+- `specs/backend/05-transformation/` — especificações implementáveis
+- `templates/plan-schema-v1.json` — JSON Schema do plano (IR)
+- `prompts/backend/` — prompts de implementação para GitHub Copilot
+- `DELTA.md` e `RELEASE_NOTES.md` — resumo de mudanças e release notes

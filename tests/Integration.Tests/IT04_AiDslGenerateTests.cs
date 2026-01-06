@@ -111,6 +111,128 @@ public class IT04_AiDslGenerateTests : IClassFixture<AiTestFixture>, IDisposable
         // The correlation ID is included in the response for errors, but for success we just check it worked
     }
 
+    [Fact]
+    public async Task GenerateDsl_WithEnginePlanV1_Returns501NotImplemented()
+    {
+        // Arrange
+        var request = new DslGenerateRequest
+        {
+            GoalText = "Create a CSV with id, name, and value columns from the input data array.",
+            SampleInput = JsonSerializer.SerializeToElement(new[] { new { id = "1", name = "test", value = 100 } }),
+            DslProfile = "jsonata",
+            Constraints = new DslConstraints
+            {
+                MaxColumns = 50,
+                AllowTransforms = true,
+                ForbidNetworkCalls = true,
+                ForbidCodeExecution = true
+            },
+            Engine = "plan_v1"  // Request plan_v1 engine
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/v1/ai/dsl/generate", request);
+
+        // Assert - plan_v1 returns 501 Not Implemented (stub)
+        response.StatusCode.Should().Be(HttpStatusCode.NotImplemented);
+
+        var error = await response.Content.ReadFromJsonAsync<AiError>();
+        error.Should().NotBeNull();
+        error!.Code.Should().Be("ENGINE_NOT_IMPLEMENTED");
+        error!.Message.Should().Contain("plan_v1");
+    }
+
+    [Fact]
+    public async Task GenerateDsl_WithInvalidEngine_Returns400BadRequest()
+    {
+        // Arrange
+        var request = new DslGenerateRequest
+        {
+            GoalText = "Create a CSV with id, name, and value columns from the input data array.",
+            SampleInput = JsonSerializer.SerializeToElement(new[] { new { id = "1", name = "test", value = 100 } }),
+            DslProfile = "jsonata",
+            Constraints = new DslConstraints
+            {
+                MaxColumns = 50,
+                AllowTransforms = true,
+                ForbidNetworkCalls = true,
+                ForbidCodeExecution = true
+            },
+            Engine = "invalid_engine"  // Invalid engine value
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/v1/ai/dsl/generate", request);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        var error = await response.Content.ReadFromJsonAsync<AiError>();
+        error.Should().NotBeNull();
+        error!.Code.Should().Be("INVALID_ENGINE");
+    }
+
+    [Fact]
+    public async Task GenerateDsl_WithEngineLegacy_Returns200WithEngineUsedField()
+    {
+        // Arrange
+        var request = new DslGenerateRequest
+        {
+            GoalText = "Create a CSV with id, name, and value columns from the input data array.",
+            SampleInput = JsonSerializer.SerializeToElement(new[] { new { id = "1", name = "test", value = 100 } }),
+            DslProfile = "jsonata",
+            Constraints = new DslConstraints
+            {
+                MaxColumns = 50,
+                AllowTransforms = true,
+                ForbidNetworkCalls = true,
+                ForbidCodeExecution = true
+            },
+            Engine = "legacy"  // Explicitly request legacy engine
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/v1/ai/dsl/generate", request);
+
+        // Assert - legacy works same as before
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var result = await response.Content.ReadFromJsonAsync<DslGenerateResult>();
+        result.Should().NotBeNull();
+        result!.Dsl.Should().NotBeNull();
+        result!.EngineUsed.Should().Be("legacy");
+    }
+
+    [Fact]
+    public async Task GenerateDsl_WithAutoEngine_FallsBackToLegacy()
+    {
+        // Arrange
+        var request = new DslGenerateRequest
+        {
+            GoalText = "Create a CSV with id, name, and value columns from the input data array.",
+            SampleInput = JsonSerializer.SerializeToElement(new[] { new { id = "1", name = "test", value = 100 } }),
+            DslProfile = "jsonata",
+            Constraints = new DslConstraints
+            {
+                MaxColumns = 50,
+                AllowTransforms = true,
+                ForbidNetworkCalls = true,
+                ForbidCodeExecution = true
+            },
+            Engine = "auto"  // Auto should fall back to legacy
+        };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/v1/ai/dsl/generate", request);
+
+        // Assert - auto should fall back to legacy (since plan_v1 not implemented)
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var result = await response.Content.ReadFromJsonAsync<DslGenerateResult>();
+        result.Should().NotBeNull();
+        result!.EngineUsed.Should().Be("legacy");
+    }
+
     public void Dispose()
     {
         _client.Dispose();

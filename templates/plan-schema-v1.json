@@ -1,0 +1,573 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/transform-plan-v1.json",
+  "title": "TransformPlanV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "planVersion",
+    "source",
+    "steps"
+  ],
+  "properties": {
+    "planVersion": {
+      "type": "string",
+      "enum": [
+        "1.0"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recordPath"
+      ],
+      "properties": {
+        "recordPath": {
+          "type": "string",
+          "description": "JSON Pointer do array principal (ex.: /products). Deve apontar para array de objetos; se o root já for array, usar /."
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "renamePolicy": {
+          "type": "string",
+          "enum": [
+            "ExplicitOnly",
+            "PreferUserLabels"
+          ],
+          "default": "ExplicitOnly"
+        },
+        "shapePolicy": {
+          "type": "string",
+          "enum": [
+            "ArrayOfObjects"
+          ],
+          "default": "ArrayOfObjects"
+        },
+        "schemaMode": {
+          "type": "string",
+          "enum": [
+            "Permissive"
+          ],
+          "default": "Permissive"
+        },
+        "locale": {
+          "type": "string",
+          "enum": [
+            "pt-BR",
+            "en-US",
+            "auto"
+          ],
+          "default": "auto"
+        }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/step"
+      }
+    }
+  },
+  "$defs": {
+    "jsonPointer": {
+      "type": "string",
+      "pattern": "^/.*|^/$|^$"
+    },
+    "dir": {
+      "type": "string",
+      "enum": [
+        "asc",
+        "desc"
+      ]
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op"
+      ],
+      "properties": {
+        "op": {
+          "type": "string",
+          "enum": [
+            "select",
+            "filter",
+            "compute",
+            "mapValue",
+            "groupBy",
+            "aggregate",
+            "sort",
+            "limit"
+          ]
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/fieldSpec"
+          }
+        },
+        "where": {
+          "$ref": "#/$defs/condition"
+        },
+        "compute": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/computeSpec"
+          }
+        },
+        "map": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/mapSpec"
+          }
+        },
+        "keys": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/fieldPointer"
+          },
+          "minItems": 1
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/metricSpec"
+          },
+          "minItems": 1
+        },
+        "by": {
+          "$ref": "#/$defs/fieldPointer"
+        },
+        "dir": {
+          "$ref": "#/$defs/dir"
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "select"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "fields"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "filter"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "where"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "compute"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "compute"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "mapValue"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "map"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "groupBy"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "keys"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "aggregate"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "metrics"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "sort"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "by"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "limit"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "n"
+            ]
+          }
+        }
+      ]
+    },
+    "fieldPointer": {
+      "type": "string",
+      "description": "JSON Pointer relativo ao objeto do recordset (ex.: /price, /address/city)."
+    },
+    "fieldSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "as"
+      ],
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/fieldPointer"
+        },
+        "as": {
+          "type": "string"
+        },
+        "typeHint": {
+          "type": "string",
+          "enum": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null",
+            "unknown"
+          ],
+          "default": "unknown"
+        }
+      }
+    },
+    "computeSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "as",
+        "expr"
+      ],
+      "properties": {
+        "as": {
+          "type": "string"
+        },
+        "expr": {
+          "type": "string",
+          "description": "Expressão aritmética simples com refs a campos via identifiers (ex.: price*quantity)."
+        },
+        "typeHint": {
+          "type": "string",
+          "enum": [
+            "number",
+            "string",
+            "unknown"
+          ],
+          "default": "unknown"
+        }
+      }
+    },
+    "mapSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "as",
+        "mapping"
+      ],
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/fieldPointer"
+        },
+        "as": {
+          "type": "string"
+        },
+        "mapping": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          }
+        },
+        "default": {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "metricSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "as",
+        "fn"
+      ],
+      "properties": {
+        "as": {
+          "type": "string"
+        },
+        "fn": {
+          "type": "string",
+          "enum": [
+            "sum",
+            "count",
+            "avg",
+            "min",
+            "max"
+          ]
+        },
+        "expr": {
+          "type": "string",
+          "description": "Expressão aritmética simples (opcional). Se omitido e fn != count, usa campo indicado em 'field'."
+        },
+        "field": {
+          "$ref": "#/$defs/fieldPointer"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "fn": {
+                "const": "count"
+              }
+            }
+          },
+          "then": {}
+        },
+        {
+          "if": {
+            "properties": {
+              "fn": {
+                "enum": [
+                  "sum",
+                  "avg",
+                  "min",
+                  "max"
+                ]
+              }
+            }
+          },
+          "then": {
+            "anyOf": [
+              {
+                "required": [
+                  "expr"
+                ]
+              },
+              {
+                "required": [
+                  "field"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op"
+      ],
+      "properties": {
+        "op": {
+          "type": "string",
+          "enum": [
+            "eq",
+            "neq",
+            "gt",
+            "gte",
+            "lt",
+            "lte",
+            "in",
+            "contains",
+            "and",
+            "or",
+            "not"
+          ]
+        },
+        "left": {
+          "$ref": "#/$defs/operand"
+        },
+        "right": {
+          "$ref": "#/$defs/operand"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/condition"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "enum": [
+                  "and",
+                  "or"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "items"
+            ],
+            "properties": {
+              "items": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "const": "not"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "items"
+            ],
+            "properties": {
+              "items": {
+                "minItems": 1,
+                "maxItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "op": {
+                "enum": [
+                  "eq",
+                  "neq",
+                  "gt",
+                  "gte",
+                  "lt",
+                  "lte",
+                  "in",
+                  "contains"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "left",
+              "right"
+            ]
+          }
+        }
+      ]
+    },
+    "operand": {
+      "type": [
+        "object",
+        "string",
+        "number",
+        "boolean",
+        "null"
+      ],
+      "description": "Operand pode ser literal ou referência a campo quando for objeto {\"field\": \"/price\"}.",
+      "anyOf": [
+        {
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "field"
+          ],
+          "properties": {
+            "field": {
+              "$ref": "#/$defs/fieldPointer"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
