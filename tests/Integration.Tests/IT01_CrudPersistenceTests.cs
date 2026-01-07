@@ -162,8 +162,8 @@ public class IT01_CrudPersistenceTests : IDisposable
                 }
             ),
             Dsl: new DslDto(
-                Profile: "jsonata",
-                Text: TestFixtures.GetHostsCpuDsl()
+                Profile: "ir",
+                Text: "{}"
             ),
             OutputSchema: outputSchema
         );
@@ -229,7 +229,7 @@ public class IT01_CrudPersistenceTests : IDisposable
                     ["filter"] = "active"
                 }
             ),
-            Dsl: new DslDto(Profile: "jsonata", Text: TestFixtures.GetHostsCpuDsl()),
+            Dsl: new DslDto(Profile: "ir", Text: "{}"),
             OutputSchema: outputSchema
         );
         var verResponse = await _client.PostAsJsonAsync($"/api/v1/processes/{process.Id}/versions", version);
@@ -246,3 +246,4 @@ public class IT01_CrudPersistenceTests : IDisposable
         retrievedVersion.GetProperty("enabled").GetBoolean().Should().BeTrue();
     }
 }
+

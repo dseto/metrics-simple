@@ -25,10 +25,10 @@ Este documento explica como usar o **Google Gemini** como provedor LLM alternati
 
 ```powershell
 # Windows PowerShell
-$env:METRICS_GEMINI_API_KEY = "seu-api-key-aqui"
+$env:METRICS_GEMINI_API_KEY = "*"
 
 # Linux/Mac bash
-export METRICS_GEMINI_API_KEY="seu-api-key-aqui"
+export METRICS_GEMINI_API_KEY="*"
 
 # Ou adicionar no .env / docker-compose.yaml
 ```
@@ -88,12 +88,12 @@ curl -X POST http://localhost:5000/api/ai/dsl/generate \
 
 ```yaml
 # OpenRouter (padrão)
-METRICS_OPENROUTER_API_KEY=seu-openrouter-key
-OPENROUTER_API_KEY=seu-openrouter-key  # fallback
+METRICS_OPENROUTER_API_KEY=*
+OPENROUTER_API_KEY=*  # fallback
 
 # Gemini
-METRICS_GEMINI_API_KEY=seu-gemini-key
-GEMINI_API_KEY=seu-gemini-key  # fallback
+METRICS_GEMINI_API_KEY=*
+GEMINI_API_KEY=*  # fallback
 ```
 
 ### Configuração em appsettings.json
@@ -203,7 +203,7 @@ dotnet test tests/Integration.Tests/Integration.Tests.csproj --filter "PlanV1"
 
 ```csharp
 // ❌ ERRADO - Nunca hardcodear
-var apiKey = "AIzaSyCeHxPI2nOYZgQ9O2b5xsytN8OywVpQmBw";
+var apiKey = "*";
 
 // ✅ CORRETO - Usar variável de ambiente
 var apiKey = Environment.GetEnvironmentVariable("METRICS_GEMINI_API_KEY");
@@ -307,7 +307,7 @@ Parse Response → Validate → Return DslGenerateResult
 
 ```bash
 # Terminal 1: OpenRouter
-$env:METRICS_OPENROUTER_API_KEY = "seu-openrouter-key"
+$env:METRICS_OPENROUTER_API_KEY = "*"
 Set-Content appsettings.json -Value '{
   "AI": {
     "Enabled": true,
@@ -318,7 +318,7 @@ Set-Content appsettings.json -Value '{
 dotnet run --project src/Api/Api.csproj
 
 # Terminal 2: Gemini (nova sessão)
-$env:METRICS_GEMINI_API_KEY = "seu-gemini-key"
+$env:METRICS_GEMINI_API_KEY = "*"
 Set-Content appsettings.json -Value '{
   "AI": {
     "Enabled": true,

@@ -211,8 +211,8 @@ services:
 ASPNETCORE_URLS=http://+:8080
 DOTNET_ENVIRONMENT=Production
 METRICS_SQLITE_PATH=/app/config/config.db
-METRICS_SECRET_KEY=<base64-encoded-32-byte-key>
-METRICS_OPENROUTER_API_KEY=<api-key-optional>
+METRICS_SECRET_KEY=*
+METRICS_OPENROUTER_API_KEY=*
 ```
 
 ### Volumes Montados

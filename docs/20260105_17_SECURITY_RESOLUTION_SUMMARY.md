@@ -12,7 +12,7 @@ OpenRouter's automated security scanning detected that an API key was accidental
 
 ```
 Repository: github.com/dseto/metrics-simple (PUBLIC)
-Exposed Key: *********-b126b457ae6a5565e938c3d6ac7841b246956d7588115333a61e90a0dd84767d
+Exposed Key: *
 Status: ⚠️ AUTOMATICALLY REVOKED by OpenRouter
 ```
 
@@ -56,14 +56,14 @@ Status: ⚠️ AUTOMATICALLY REVOKED by OpenRouter
 
 **Option A (Recommended - Environment Variable)**
 ```powershell
-$env:METRICS_OPENROUTER_API_KEY = "*********-YOUR_NEW_KEY"
+$env:METRICS_OPENROUTER_API_KEY = "*"
 dotnet test
 ```
 
 **Option B (Alternative - .runsettings)**
 Edit `.runsettings` with your new key:
 ```xml
-<METRICS_OPENROUTER_API_KEY>*********-YOUR_NEW_KEY</METRICS_OPENROUTER_API_KEY>
+<METRICS_OPENROUTER_API_KEY>*</METRICS_OPENROUTER_API_KEY>
 ```
 **Do NOT commit this file if it contains the real key**
 

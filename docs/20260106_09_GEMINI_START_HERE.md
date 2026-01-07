@@ -10,12 +10,12 @@
 ```
 1. Vá para: https://aistudio.google.com/app/apikeys
 2. Clique: "Create API Key"
-3. Copie: AIzaSyCeHxPI2nOYZgQ9O2b5xsytN8OywVpQmBw
+3. Copie: *
 ```
 
 ### Passo 2: Configurar (1 min)
 ```powershell
-$env:METRICS_GEMINI_API_KEY = "AIzaSyCeHxPI2nOYZgQ9O2b5..."
+$env:METRICS_GEMINI_API_KEY = "*"
 ```
 
 ### Passo 3: Rodar (1 min)

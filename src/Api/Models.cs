@@ -126,9 +126,9 @@ public record RequestDefaultsDto(
 
 // Preview Transform Models
 public record PreviewTransformRequestDto(
+    object SampleInput,
     DslDto Dsl,
-    object OutputSchema,
-    object SampleInput
+    object? OutputSchema = null
 );
 
 public record PreviewTransformResponseDto(

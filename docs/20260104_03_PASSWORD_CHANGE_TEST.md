@@ -2,7 +2,7 @@
 
 Data: 2026-01-04  
 Usuário: daniel  
-Senha Nova: secret123
+Senha Nova: *
 
 ---
 
@@ -30,7 +30,7 @@ Response:
 ```
 PUT /api/admin/auth/users/b16f86623c0b457aa1f7f87df99e8ae2/password
 Authorization: Bearer {admin-token}
-Body: {"newPassword":"secret123"}
+Body: {"newPassword":"*"}
 
 Status: 200 OK
 Response: {"message":"Password updated successfully"}
@@ -41,12 +41,12 @@ Response: {"message":"Password updated successfully"}
 ### ✅ 3. Login com nova senha
 ```
 POST /api/auth/token
-Body: {"username":"daniel","password":"secret123"}
+Body: {"username":"daniel","password":"*"}
 
 Status: 200 OK
 Response:
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "access_token": "*",
   "token_type": "Bearer",
   "expires_in": 3600
 }
@@ -67,7 +67,7 @@ Token decodificado:
 ### ✅ 4. Tentar login com senha antiga (rejeitado)
 ```
 POST /api/auth/token
-Body: {"username":"daniel","password":"SecurePass123!"}
+Body: {"username":"daniel","password":"*"}
 
 Status: 401 Unauthorized ✅
 Mensagem: Credenciais inválidas (senha antiga rejeitada)

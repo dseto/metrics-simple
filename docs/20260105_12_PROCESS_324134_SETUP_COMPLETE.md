@@ -57,7 +57,7 @@ Successfully created and validated **Process 324134** with **Version 1** using t
 - **URL**: `POST http://localhost:8080/api/auth/token`
 - **Credentials**: 
   - Username: `admin`
-  - Password: `ChangeMe123!` (important: not the default "admin")
+  - Password: `*` (important: not the default "admin")
 - **Response**: 
   ```json
   {
@@ -80,7 +80,7 @@ Authorization: Bearer <access_token>
 $Token = (Invoke-WebRequest -Uri "http://localhost:8080/api/auth/token" `
     -Method POST `
     -Headers @{"Content-Type"="application/json"} `
-    -Body '{"username":"admin","password":"ChangeMe123!"}').Content | ConvertFrom-Json | Select-Object -ExpandProperty access_token
+    -Body '{"username":"admin","password":"*"}').Content | ConvertFrom-Json | Select-Object -ExpandProperty access_token
 
 Invoke-WebRequest -Uri "http://localhost:8080/api/v1/processes/324134" `
     -Headers @{"Authorization"="Bearer $Token"}
@@ -156,7 +156,7 @@ $Version = 1
 $Token = (Invoke-WebRequest -Uri "http://localhost:8080/api/auth/token" `
     -Method POST `
     -Headers @{"Content-Type"="application/json"} `
-    -Body '{"username":"admin","password":"ChangeMe123!"}').Content | ConvertFrom-Json | Select-Object -ExpandProperty access_token
+    -Body '{"username":"admin","password":"*"}').Content | ConvertFrom-Json | Select-Object -ExpandProperty access_token
 
 # Create Connector
 $ConnPayload = @{
@@ -245,7 +245,7 @@ Invoke-WebRequest -Uri "http://localhost:8080/api/v1/processes/$ProcessId/versio
 
 ## Authentication Note
 
-**CRITICAL**: The admin password is **`ChangeMe123!`** (not "admin").
+**CRITICAL**: The admin password is **`*`** (not "admin").
 
 This is configured in Docker via environment variables or secrets. Always use this password when:
 - Testing API endpoints manually

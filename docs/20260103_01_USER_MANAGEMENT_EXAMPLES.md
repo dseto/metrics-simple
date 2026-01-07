@@ -14,14 +14,14 @@ curl -X POST http://localhost:8080/api/auth/token \
   -H "Content-Type: application/json" \
   -d '{
     "username": "admin",
-    "password": "ChangeMe123!"
+    "password": "*"
   }'
 ```
 
 **Resposta (201 Created):**
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbjEyMyIsImFwcF9yb2xlcyI6WyJNZXRyaWNzLkFkbWluIl0sImRpc3BsYXlfbmFtZSI6IkFkbWluIiwiZXhwIjoxNzMwNzcxMDAwLCJpc3MiOiJNZXRyaWNzU2ltcGxlIiwiYXVkIjoiTWV0cmljc1NpbXBsZS5BcGkifQ...",
+  "access_token": "*",
   "token_type": "Bearer",
   "expires_in": 3600
 }
@@ -47,7 +47,7 @@ curl -X POST http://localhost:8080/api/admin/auth/users \
   -H "Content-Type: application/json" \
   -d '{
     "username": "daniel",
-    "password": "SecurePass123!",
+    "password": "*",
     "displayName": "Daniel Silva",
     "email": "daniel@example.com",
     "roles": ["Metrics.Reader"]
@@ -91,7 +91,7 @@ curl -X POST http://localhost:8080/api/admin/auth/users \
   -H "Content-Type: application/json" \
   -d '{
     "username": "carlos_admin",
-    "password": "AdminPass999!",
+    "password": "*",
     "displayName": "Carlos Oliveira",
     "email": "carlos@company.com",
     "roles": ["Metrics.Admin", "Metrics.Reader"]
@@ -184,7 +184,7 @@ curl -X PUT http://localhost:8080/api/admin/auth/users/f47ac10b58cc4372a5670e4a9
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "newPassword": "NewSecurePass456!"
+    "newPassword": "*"
   }'
 ```
 
@@ -213,19 +213,19 @@ curl -X PUT http://localhost:8080/api/admin/auth/users/f47ac10b58cc4372a5670e4a9
 ```bash
 curl -X POST http://localhost:8080/api/auth/token \
   -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "ChangeMe123!"}'
+  -d '{"username": "admin", "password": "*"}'
 ```
 
 ### 2. Criar novo usuário
 ```bash
-ADMIN_TOKEN="seu_token_aqui"
+ADMIN_TOKEN="*"
 
 curl -X POST http://localhost:8080/api/admin/auth/users \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "joao",
-    "password": "JoaoPass2024!",
+    "password": "*",
     "displayName": "João Santos",
     "email": "joao@company.com",
     "roles": ["Metrics.Reader"]
@@ -238,7 +238,7 @@ Resposta conterá o `id` do novo usuário.
 ```bash
 curl -X POST http://localhost:8080/api/auth/token \
   -H "Content-Type: application/json" \
-  -d '{"username": "joao", "password": "JoaoPass2024!"}'
+  -d '{"username": "joao", "password": "*"}'
 ```
 
 ### 4. Acessar endpoint protegido com novo usuário
@@ -320,7 +320,7 @@ Todos os usuários criados via API são armazenados em:
 
 ## Notas de Segurança
 
-1. **Mude a senha do admin na primeira execução:** A senha padrão é `ChangeMe123!`
+1. **Mude a senha do admin na primeira execução:** A senha padrão é `*`
 2. **Use HTTPS em produção:** Os exemplos usam http://localhost para desenvolvimento
 3. **Tokens JWT:** Expiram em 1 hora por padrão. Configure via `Auth.AccessTokenMinutes` em appsettings.json
 4. **Auditoria:** Todas as operações de criação/atualização de usuários são logadas com correlationId para rastreamento
@@ -334,7 +334,7 @@ Todos os usuários criados via API são armazenados em:
 Verifique se o username já foi criado. Use um username diferente ou delete o usuário anterior.
 
 ### "Password must be at least 8 characters"
-Aumente o comprimento da senha. Exemplo: `SecurePass123!` (14 caracteres)
+Aumente o comprimento da senha. Exemplo: `*` (14 caracteres)
 
 ### "Access denied" (403)
 Verifique se você está usando um token de um usuário com role `Metrics.Admin`. Use o token do admin bootstrap.

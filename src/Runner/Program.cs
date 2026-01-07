@@ -48,10 +48,9 @@ run.SetHandler(async (string processId, string version, string dest, string? out
     try
     {
         // Initialize services
-        var transformer = new JsonataTransformer();
         var validator = new SchemaValidator();
         var csvGenerator = new CsvGenerator();
-        var engine = new EngineService(transformer, validator, csvGenerator);
+        var engine = new EngineService(validator, csvGenerator);
         var secretsProvider = new SecretsProvider();
         var dbProvider = new DatabaseProvider();
 
@@ -138,9 +137,8 @@ validate.SetHandler(async (string processId, string version, string? secrets, st
         connection.Close();
 
         // Validate DSL and schema
-        var transformer = new JsonataTransformer();
         var validator = new SchemaValidator();
-        var engine = new EngineService(transformer, validator, new CsvGenerator());
+        var engine = new EngineService(validator, new CsvGenerator());
 
         // Create a dummy input for validation
         var dummyInput = System.Text.Json.JsonDocument.Parse("{}").RootElement;

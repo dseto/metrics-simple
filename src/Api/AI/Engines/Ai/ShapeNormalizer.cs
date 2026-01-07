@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Metrics.Api.AI.Engines.PlanV1;
+namespace Metrics.Api.AI.Engines.Ai;
 
 /// <summary>
 /// Normalizes output shape to array&lt;object&gt; as required by the spec.

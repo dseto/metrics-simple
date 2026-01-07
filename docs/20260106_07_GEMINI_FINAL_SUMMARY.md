@@ -46,7 +46,7 @@ Você agora tem **suporte completo para Google Gemini** como provedor LLM altern
 ### 2️⃣ Configurar Env Var (30 sec)
 
 ```powershell
-$env:METRICS_GEMINI_API_KEY = "AIzaSyCeHxPI2nOYZgQ9O2b5xsytN8OywVpQmBw"
+$env:METRICS_GEMINI_API_KEY = "*"
 ```
 
 ### 3️⃣ Atualizar appsettings.json (30 sec)

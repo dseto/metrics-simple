@@ -106,7 +106,7 @@ GEMINI_API_KEY=sua-google-api-key
 
 ```powershell
 # 1. Configurar Google API key
-$env:METRICS_GEMINI_API_KEY = "sua-key-de-https://aistudio.google.com/app/apikeys"
+$env:METRICS_GEMINI_API_KEY = "*"
 
 # 2. Editar appsettings.json - Provider: "Gemini"
 
@@ -273,7 +273,7 @@ Parse + Validate + Return DslGenerateResult
 ### 2. Configurar Env Var
 
 ```powershell
-$env:METRICS_GEMINI_API_KEY = "AIzaSyCeHxPI2nOYZgQ9O2b5..."
+$env:METRICS_GEMINI_API_KEY = "*"
 ```
 
 ### 3. Editar appsettings.json

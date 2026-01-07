@@ -138,14 +138,13 @@ public class IT13_LLMAssistedDslFlowTests : IAsyncLifetime
         return loginContent.GetProperty("access_token").GetString()!;
     }
     
-    private async Task<DslGenerateResult?> GenerateDslAsync(object sampleInput, string goalText, string? engine = null)
+    private async Task<DslGenerateResult?> GenerateDslAsync(object sampleInput, string goalText)
     {
         var aiRequest = new
         {
             goalText = goalText,
             sampleInput = sampleInput,
-            dslProfile = "jsonata",
-            engine = engine,
+            dslProfile = "ir",
             constraints = new
             {
                 maxColumns = 20,
@@ -178,7 +177,8 @@ public class IT13_LLMAssistedDslFlowTests : IAsyncLifetime
         {
             sampleInput = sampleInput,
             dsl = dslResult.Dsl,
-            outputSchema = dslResult.OutputSchema
+            outputSchema = dslResult.OutputSchema,
+            plan = dslResult.Plan
         };
 
         var transformHttpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v1/preview/transform");
@@ -221,11 +221,11 @@ public class IT13_LLMAssistedDslFlowTests : IAsyncLifetime
         _output.WriteLine($"📝 Goal: {goalText}");
         _output.WriteLine($"📊 Input Format: Root Array (3 records)\n");
 
-        var dslResult = await GenerateDslAsync(sampleInput, goalText, engine: "plan_v1");
+        var dslResult = await GenerateDslAsync(sampleInput, goalText);
         dslResult.Should().NotBeNull("plan_v1 should return a result");
-        dslResult!.EngineUsed.Should().Be("plan_v1");
+
         
-        _output.WriteLine($"✅ DSL Generated! Engine: {dslResult.EngineUsed}, Profile: {dslResult.Dsl.Profile}");
+
         _output.WriteLine($"   DSL: {dslResult.Dsl.Text[..Math.Min(200, dslResult.Dsl.Text.Length)]}...\n");
 
         // Validate we have preview rows with expected columns
@@ -262,11 +262,11 @@ public class IT13_LLMAssistedDslFlowTests : IAsyncLifetime
         _output.WriteLine($"📝 Goal: {goalText}");
         _output.WriteLine($"📊 Input Format: {{\"items\":[...]}}\n");
 
-        var dslResult = await GenerateDslAsync(sampleInput, goalText, engine: "plan_v1");
+        var dslResult = await GenerateDslAsync(sampleInput, goalText);
         dslResult.Should().NotBeNull("plan_v1 should return a result");
-        dslResult!.EngineUsed.Should().Be("plan_v1");
+
         
-        _output.WriteLine($"✅ DSL Generated! Engine: {dslResult.EngineUsed}");
+
         
         dslResult.ExampleRows.Should().NotBeNull();
         dslResult.ExampleRows!.Value.ValueKind.Should().Be(JsonValueKind.Array);
@@ -294,11 +294,11 @@ public class IT13_LLMAssistedDslFlowTests : IAsyncLifetime
         _output.WriteLine($"📝 Goal: {goalText}");
         _output.WriteLine($"📊 Input Format: {{\"results\":[...]}}\n");
 
-        var dslResult = await GenerateDslAsync(sampleInput, goalText, engine: "plan_v1");
+        var dslResult = await GenerateDslAsync(sampleInput, goalText);
         dslResult.Should().NotBeNull("plan_v1 should return a result");
-        dslResult!.EngineUsed.Should().Be("plan_v1");
+
         
-        _output.WriteLine($"✅ DSL Generated! Engine: {dslResult.EngineUsed}");
+
         
         dslResult.ExampleRows.Should().NotBeNull();
         dslResult.ExampleRows!.Value.ValueKind.Should().Be(JsonValueKind.Array);
@@ -327,11 +327,11 @@ public class IT13_LLMAssistedDslFlowTests : IAsyncLifetime
         _output.WriteLine($"📝 Goal: {goalText}");
         _output.WriteLine($"📊 Input Format: {{\"sales\":[...]}}\n");
 
-        var dslResult = await GenerateDslAsync(sampleInput, goalText, engine: "plan_v1");
+        var dslResult = await GenerateDslAsync(sampleInput, goalText);
         dslResult.Should().NotBeNull("plan_v1 should return a result");
-        dslResult!.EngineUsed.Should().Be("plan_v1");
+
         
-        _output.WriteLine($"✅ DSL Generated! Engine: {dslResult.EngineUsed}, Profile: {dslResult.Dsl.Profile}");
+
         _output.WriteLine($"   DSL: {dslResult.Dsl.Text[..Math.Min(300, dslResult.Dsl.Text.Length)]}...\n");
 
         dslResult.ExampleRows.Should().NotBeNull();
@@ -367,11 +367,11 @@ public class IT13_LLMAssistedDslFlowTests : IAsyncLifetime
         _output.WriteLine($"📝 Goal: {goalText}");
         _output.WriteLine($"📊 Input Format: {{\"results\":{{\"forecast\":[...]}}}}\n");
 
-        var dslResult = await GenerateDslAsync(sampleInput, goalText, engine: "plan_v1");
+        var dslResult = await GenerateDslAsync(sampleInput, goalText);
         dslResult.Should().NotBeNull("plan_v1 should return a result");
-        dslResult!.EngineUsed.Should().Be("plan_v1");
+
         
-        _output.WriteLine($"✅ DSL Generated! Engine: {dslResult.EngineUsed}");
+
         _output.WriteLine($"   DSL: {dslResult.Dsl.Text[..Math.Min(300, dslResult.Dsl.Text.Length)]}...\n");
 
         dslResult.ExampleRows.Should().NotBeNull();
@@ -390,6 +390,107 @@ public class IT13_LLMAssistedDslFlowTests : IAsyncLifetime
     }
     
     #endregion
+
+    #region Additional PlanV1 Tests
+
+    [Fact]
+    public async Task PlanV1_SelectAll_T1()
+    {
+        _adminToken = await LoginAsync();
+        var sampleInput = CreatePersonsRootArray();
+        var goalText = "List all fields for each person.";
+
+        var dslResult = await GenerateDslAsync(sampleInput, goalText);
+        dslResult.Should().NotBeNull();
+
+
+        var transform = await ExecuteTransformAsync(sampleInput, dslResult);
+        transform.Should().NotBeNull();
+        transform!.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task PlanV1_SelectWithFilter()
+    {
+        _adminToken = await LoginAsync();
+        var sampleInput = new object[]
+        {
+            new { id = "001", active = true, name = "A" },
+            new { id = "002", active = false, name = "B" }
+        };
+        var goalText = "Extract id and name for active records only.";
+
+        var dslResult = await GenerateDslAsync(sampleInput, goalText);
+        dslResult.Should().NotBeNull();
+
+        var transform = await ExecuteTransformAsync(sampleInput, dslResult!);
+        transform.Should().NotBeNull();
+        transform!.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task PlanV1_GroupBy_Avg()
+    {
+        _adminToken = await LoginAsync();
+        var sampleInput = new
+        {
+            items = new[]
+            {
+                new { category = "A", value = 10 },
+                new { category = "A", value = 20 },
+                new { category = "B", value = 5 }
+            }
+        };
+        var goalText = "Group by category and compute average value.";
+
+        var dslResult = await GenerateDslAsync(sampleInput, goalText);
+        dslResult.Should().NotBeNull();
+
+        var transform = await ExecuteTransformAsync(sampleInput, dslResult!);
+        transform.Should().NotBeNull();
+        transform!.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task PlanV1_MapValue()
+    {
+        _adminToken = await LoginAsync();
+        var sampleInput = new object[]
+        {
+            new { id = "1", status = "A" },
+            new { id = "2", status = "B" }
+        };
+        var goalText = "Map status codes to labels: A=>Active, B=>Blocked.";
+
+        var dslResult = await GenerateDslAsync(sampleInput, goalText);
+        dslResult.Should().NotBeNull();
+
+        var transform = await ExecuteTransformAsync(sampleInput, dslResult!);
+        transform.Should().NotBeNull();
+        transform!.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task PlanV1_Limit_TopN()
+    {
+        _adminToken = await LoginAsync();
+        var sampleInput = new object[]
+        {
+            new { id = "1", score = 10 },
+            new { id = "2", score = 20 },
+            new { id = "3", score = 30 }
+        };
+        var goalText = "Return top 2 records ordered by score.";
+
+        var dslResult = await GenerateDslAsync(sampleInput, goalText);
+        dslResult.Should().NotBeNull();
+
+        var transform = await ExecuteTransformAsync(sampleInput, dslResult!);
+        transform.Should().NotBeNull();
+        transform!.IsValid.Should().BeTrue();
+    }
+
+    #endregion
     
     #region Legacy Engine Tests (LLM-Dependent)
     
@@ -397,7 +498,7 @@ public class IT13_LLMAssistedDslFlowTests : IAsyncLifetime
     /// Legacy test - kept for backward compatibility.
     /// Uses default engine (legacy) with LLM.
     /// </summary>
-    [Fact]
+    [Fact(Skip = "Legacy jsonata test - focus is now plan_v1 only")]
     [Trait("RequiresLLM", "true")]
     public async Task LLM_SimpleExtraction_PortuguesePrompt()
     {
@@ -559,7 +660,7 @@ public class IT13_LLMAssistedDslFlowTests : IAsyncLifetime
         _output.WriteLine("╚════════════════════════════════════════════════════════════╝");
     }
 
-    [Fact]
+    [Fact(Skip = "Legacy jsonata test - focus is now plan_v1 only")]
     [Trait("RequiresLLM", "true")]
     public async Task LLM_Aggregation_EnglishPrompt()
     {
@@ -691,7 +792,7 @@ public class IT13_LLMAssistedDslFlowTests : IAsyncLifetime
         _output.WriteLine("╚════════════════════════════════════════════════════════════╝");
     }
 
-    [Fact]
+    [Fact(Skip = "Legacy jsonata test - focus is now plan_v1 only")]
     [Trait("RequiresLLM", "true")]
     public async Task LLM_ComplexTransformation_MixedLanguage()
     {
@@ -827,7 +928,7 @@ public class IT13_LLMAssistedDslFlowTests : IAsyncLifetime
         _output.WriteLine("╚════════════════════════════════════════════════════════════╝");
     }
 
-    [Fact]
+    [Fact(Skip = "Legacy jsonata test - focus is now plan_v1 only")]
     [Trait("RequiresLLM", "true")]
     public async Task LLM_WeatherForecast_RealWorldPrompt()
     {

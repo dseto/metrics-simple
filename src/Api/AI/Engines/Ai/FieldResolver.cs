@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Metrics.Api.AI.Engines.PlanV1;
+namespace Metrics.Api.AI.Engines.Ai;
 
 /// <summary>
 /// Resolves field paths using alias mapping (pt-BR to en-US and vice versa).

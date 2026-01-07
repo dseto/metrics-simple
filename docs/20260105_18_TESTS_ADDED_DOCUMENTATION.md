@@ -250,7 +250,7 @@ Os testes **requerem API key** do OpenRouter. Configuração em ordem de preced�
 
 **Como executar**:
 ```powershell
-$env:METRICS_OPENROUTER_API_KEY = "*********-YOUR_KEY"
+ $env:METRICS_OPENROUTER_API_KEY = "*"
 dotnet test --filter "IT05"
 ```
 

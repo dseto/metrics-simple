@@ -224,7 +224,7 @@ Integration:     ✅ Sem breaking changes
 ```bash
 # https://aistudio.google.com/app/apikeys
 # → Create API Key → Copy
-AIzaSyCeHxPI2nOYZgQ9O2b5xsytN8OywVpQmBw
+*
 ```
 
 ### 2️⃣ Env Var (30 sec)

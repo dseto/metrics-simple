@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace Metrics.Api.AI.Engines.PlanV1;
+namespace Metrics.Api.AI.Engines.Ai;
 
 /// <summary>
 /// Executes plan operations deterministically.

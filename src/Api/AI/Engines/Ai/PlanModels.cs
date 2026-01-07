@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Metrics.Api.AI.Engines.PlanV1;
+namespace Metrics.Api.AI.Engines.Ai;
 
 /// <summary>
 /// IR v1 Plan - represents a deterministic transformation plan.

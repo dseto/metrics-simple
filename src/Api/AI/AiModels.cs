@@ -29,6 +29,11 @@ public record AiConfiguration
     public string PromptVersion { get; init; } = "1.0.0";
     public int TimeoutSeconds { get; init; } = 30;
     public int MaxRetries { get; init; } = 1;
+    /// <summary>
+    /// Initial backoff delay in seconds used for rate-limit retries (exponential backoff).
+    /// For example, 3 => retries wait 3s, 6s, 12s, ...
+    /// </summary>
+    public int InitialBackoffSeconds { get; init; } = 3;
     public double Temperature { get; init; } = 0.0;
     public int MaxTokens { get; init; } = 4096;
     public double TopP { get; init; } = 0.9;
@@ -44,36 +49,10 @@ public record AiConfiguration
     /// Attempts to repair malformed JSON responses automatically.
     /// </summary>
     public bool EnableResponseHealing { get; init; } = true;
-    
-    /// <summary>
-    /// Default engine when request doesn't specify one: "legacy" | "plan_v1" | "auto"
-    /// </summary>
-    public string DefaultEngine { get; init; } = EngineType.Legacy;
 }
 
 /// <summary>
-/// Engine selection mode for DSL generation
-/// </summary>
-public static class EngineType
-{
-    /// <summary>Use legacy LLM-based engine (Jsonata)</summary>
-    public const string Legacy = "legacy";
-    
-    /// <summary>Use plan_v1 deterministic IR engine</summary>
-    public const string PlanV1 = "plan_v1";
-    
-    /// <summary>Auto-select based on goal heuristics</summary>
-    public const string Auto = "auto";
-    
-    public static bool IsValid(string? engine) =>
-        string.IsNullOrEmpty(engine) ||
-        engine == Legacy ||
-        engine == PlanV1 ||
-        engine == Auto;
-}
-
-/// <summary>
-/// DSL generation request - matches dslGenerateRequest.schema.json
+/// DSL generation request
 /// </summary>
 public record DslGenerateRequest
 {
@@ -84,7 +63,7 @@ public record DslGenerateRequest
     public required JsonElement SampleInput { get; init; }
 
     [JsonPropertyName("dslProfile")]
-    public string DslProfile { get; init; } = "jsonata";
+    public string DslProfile { get; init; } = "ir";
 
     [JsonPropertyName("constraints")]
     public required DslConstraints Constraints { get; init; }
@@ -99,14 +78,7 @@ public record DslGenerateRequest
     public JsonElement? ExistingOutputSchema { get; init; }
 
     /// <summary>
-    /// Engine selection: "legacy" (LLM/Jsonata), "plan_v1" (IR deterministic), "auto" (heuristic).
-    /// Defaults to configuration if not specified.
-    /// </summary>
-    [JsonPropertyName("engine")]
-    public string? Engine { get; init; }
-
-    /// <summary>
-    /// When true and engine=plan_v1, include the execution plan in the response.
+    /// When true, include the execution plan in the response.
     /// </summary>
     [JsonPropertyName("includePlan")]
     public bool IncludePlan { get; init; } = false;
@@ -154,16 +126,10 @@ public record DslGenerateResult
     public ModelInfo? ModelInfo { get; init; }
 
     /// <summary>
-    /// Execution plan (only populated when engine=plan_v1 and includePlan=true)
+    /// Execution plan (only populated when includePlan=true)
     /// </summary>
     [JsonPropertyName("plan")]
     public JsonElement? Plan { get; init; }
-
-    /// <summary>
-    /// Which engine was used for generation
-    /// </summary>
-    [JsonPropertyName("engineUsed")]
-    public string? EngineUsed { get; init; }
 }
 
 /// <summary>

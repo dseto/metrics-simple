@@ -298,7 +298,7 @@ docker compose up
 
 ### .env
 ```
-METRICS_SECRET_KEY=dGVzdC1z...   ← ✅ TESTED (32-byte base64)
+METRICS_SECRET_KEY=*   ← ✅ TESTED (32-byte base64)
 METRICS_SQLITE_PATH=...          ← ✅ TESTED
 ASPNETCORE_ENVIRONMENT=...       ← ✅ TESTED
 ```

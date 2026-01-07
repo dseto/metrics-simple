@@ -1,10 +1,10 @@
-namespace Metrics.Api.AI.Engines.PlanV1;
+namespace Metrics.Api.AI.Engines.Ai;
 
 /// <summary>
-/// System prompt for plan_v1 engine with few-shot examples.
-/// Generates Transformation Plan (IR v1) JSON instead of Jsonata DSL.
+/// System prompt for AI engine with few-shot examples.
+/// Generates Transformation Plan (IR v1) JSON.
 /// </summary>
-public static class PlanV1SystemPrompt
+public static class AiSystemPrompt
 {
     /// <summary>
     /// Builds the system prompt with IR v1 schema explanation and few-shot examples.

@@ -1,31 +1,7 @@
 namespace Metrics.Api.AI.Engines;
 
 /// <summary>
-/// Interface for DSL transformation engines.
-/// Implementations handle different strategies for generating DSL from user goals.
-/// </summary>
-public interface IAiTransformationEngine
-{
-    /// <summary>
-    /// The engine type identifier (e.g., "legacy", "plan_v1")
-    /// </summary>
-    string EngineType { get; }
-
-    /// <summary>
-    /// Generate DSL based on the request.
-    /// </summary>
-    /// <param name="request">The DSL generation request</param>
-    /// <param name="correlationId">Request correlation ID for logging</param>
-    /// <param name="ct">Cancellation token</param>
-    /// <returns>The generation result</returns>
-    Task<AiEngineResult> GenerateAsync(
-        DslGenerateRequest request, 
-        string correlationId,
-        CancellationToken ct);
-}
-
-/// <summary>
-/// Result from an AI transformation engine
+/// Result from AI engine
 /// </summary>
 public record AiEngineResult
 {
@@ -52,11 +28,11 @@ public record AiEngineResult
     /// <summary>
     /// Create a successful result
     /// </summary>
-    public static AiEngineResult Ok(DslGenerateResult result, string engineUsed) =>
+    public static AiEngineResult Ok(DslGenerateResult result, string _) =>
         new()
         {
             Success = true,
-            Result = result with { EngineUsed = engineUsed },
+            Result = result,
             StatusCode = 200
         };
 

@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Metrics.Api.AI.Engines.PlanV1;
+namespace Metrics.Api.AI.Engines.Ai;
 
 /// <summary>
 /// Discovers the best record path (array of objects) in a JSON input.

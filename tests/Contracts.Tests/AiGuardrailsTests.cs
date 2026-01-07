@@ -94,7 +94,7 @@ public class AiGuardrailsTests
     {
         var result = CreateValidResult() with
         {
-            Dsl = new DslOutput { Profile = "jsonata", Text = "" }
+            Dsl = new DslOutput { Profile = "ir", Text = "" }
         };
         
         var validation = await AiGuardrails.ValidateResultAsync(result);
@@ -186,7 +186,7 @@ public class AiGuardrailsTests
         {
             GoalText = "Create a CSV with id and name columns from the input data.",
             SampleInput = sampleInput,
-            DslProfile = "jsonata",
+            DslProfile = "ir",
             Constraints = new DslConstraints
             {
                 MaxColumns = 50,
@@ -214,109 +214,12 @@ public class AiGuardrailsTests
         {
             Dsl = new DslOutput
             {
-                Profile = "jsonata",
+                Profile = "ir",
                 Text = "$.{ \"id\": id, \"name\": name }"
             },
             OutputSchema = schemaJson,
             Rationale = "Simple mapping of id and name fields.",
             Warnings = new List<string>()
-        };
-    }
-}
-
-/// <summary>
-/// Unit tests for MockAiProvider
-/// </summary>
-public class MockAiProviderTests
-{
-    [Fact]
-    public async Task GenerateDslAsync_DefaultConfig_ReturnsValidResult()
-    {
-        var provider = new MockAiProvider();
-        var request = CreateValidRequest();
-        
-        var result = await provider.GenerateDslAsync(request, CancellationToken.None);
-        
-        Assert.NotNull(result);
-        Assert.NotNull(result.Dsl);
-        Assert.Equal("jsonata", result.Dsl.Profile);
-        Assert.False(string.IsNullOrWhiteSpace(result.Dsl.Text));
-        Assert.True(result.OutputSchema.ValueKind != JsonValueKind.Undefined);
-        Assert.NotNull(result.Rationale);
-        Assert.NotNull(result.Warnings);
-    }
-
-    [Fact]
-    public async Task GenerateDslAsync_WithCustomResult_ReturnsCustomResult()
-    {
-        var customResult = new DslGenerateResult
-        {
-            Dsl = new DslOutput { Profile = "jsonata", Text = "custom-dsl" },
-            OutputSchema = JsonDocument.Parse("{}").RootElement,
-            Rationale = "Custom rationale",
-            Warnings = new List<string> { "Custom warning" }
-        };
-        var config = MockProviderConfig.WithResult(customResult);
-        var provider = new MockAiProvider(config);
-        var request = CreateValidRequest();
-        
-        var result = await provider.GenerateDslAsync(request, CancellationToken.None);
-        
-        Assert.Equal("custom-dsl", result.Dsl.Text);
-        Assert.Equal("Custom rationale", result.Rationale);
-        Assert.Single(result.Warnings);
-    }
-
-    [Fact]
-    public async Task GenerateDslAsync_WithError_ThrowsAiProviderException()
-    {
-        var config = MockProviderConfig.WithError(AiErrorCodes.AiProviderUnavailable, "Test error");
-        var provider = new MockAiProvider(config);
-        var request = CreateValidRequest();
-        
-        var ex = await Assert.ThrowsAsync<AiProviderException>(
-            () => provider.GenerateDslAsync(request, CancellationToken.None));
-        
-        Assert.Equal(AiErrorCodes.AiProviderUnavailable, ex.ErrorCode);
-        Assert.Equal("Test error", ex.Message);
-    }
-
-    [Fact]
-    public async Task GenerateDslAsync_WithInvalidOutput_ThrowsAiOutputInvalid()
-    {
-        var config = MockProviderConfig.WithInvalidOutput();
-        var provider = new MockAiProvider(config);
-        var request = CreateValidRequest();
-        
-        var ex = await Assert.ThrowsAsync<AiProviderException>(
-            () => provider.GenerateDslAsync(request, CancellationToken.None));
-        
-        Assert.Equal(AiErrorCodes.AiOutputInvalid, ex.ErrorCode);
-    }
-
-    [Fact]
-    public void ProviderName_ReturnsMockProvider()
-    {
-        var provider = new MockAiProvider();
-        
-        Assert.Equal("MockProvider", provider.ProviderName);
-    }
-
-    private static DslGenerateRequest CreateValidRequest()
-    {
-        var sampleInput = JsonDocument.Parse("{\"data\": [1, 2, 3]}").RootElement;
-        return new DslGenerateRequest
-        {
-            GoalText = "Create a CSV with id and name columns.",
-            SampleInput = sampleInput,
-            DslProfile = "jsonata",
-            Constraints = new DslConstraints
-            {
-                MaxColumns = 50,
-                AllowTransforms = true,
-                ForbidNetworkCalls = true,
-                ForbidCodeExecution = true
-            }
         };
     }
 }

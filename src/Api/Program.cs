@@ -2,7 +2,7 @@ using System.Text.Json;
 using Metrics.Api;
 using Metrics.Api.AI;
 using Metrics.Api.AI.Engines;
-using Metrics.Api.AI.Engines.PlanV1;
+using Metrics.Api.AI.Engines.Ai;
 using Metrics.Api.Auth;
 using Metrics.Engine;
 using Serilog;
@@ -96,7 +96,6 @@ builder.Services.AddAuthServices(authOptions);
 builder.Services.AddAuthRateLimiting(authOptions);
 
 // Register Engine services
-builder.Services.AddScoped<IDslTransformer, JsonataTransformer>();
 builder.Services.AddScoped<ISchemaValidator, SchemaValidator>();
 builder.Services.AddScoped<ICsvGenerator, CsvGenerator>();
 builder.Services.AddScoped<EngineService>();
@@ -129,76 +128,30 @@ if (!string.IsNullOrEmpty(apiKeyFromEnv))
 
 builder.Services.AddSingleton(aiConfig);
 
-// Register AI Provider based on configuration
-builder.Services.AddHttpClient<HttpOpenAiCompatibleProvider>();
-builder.Services.AddHttpClient<GeminiProvider>();
-builder.Services.AddSingleton<IAiProvider>(sp =>
-{
-    if (!aiConfig.Enabled)
-    {
-        // Return a disabled provider that will throw on invocation
-        return new MockAiProvider(MockProviderConfig.WithError(
-            AiErrorCodes.AiDisabled,
-            "AI is disabled in configuration"));
-    }
-
-    if (aiConfig.Provider == "MockProvider")
-    {
-        return new MockAiProvider();
-    }
-
-    if (aiConfig.Provider == "Gemini")
-    {
-        var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-        var httpClient = httpClientFactory.CreateClient(nameof(GeminiProvider));
-        var logger = sp.GetRequiredService<ILogger<GeminiProvider>>();
-        return new GeminiProvider(httpClient, aiConfig, logger);
-    }
-
-    // Default to HttpOpenAICompatible (OpenRouter, OpenAI, etc.)
-    var defaultHttpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-    var defaultHttpClient = defaultHttpClientFactory.CreateClient(nameof(HttpOpenAiCompatibleProvider));
-    var defaultLogger = sp.GetRequiredService<ILogger<HttpOpenAiCompatibleProvider>>();
-    return new HttpOpenAiCompatibleProvider(defaultHttpClient, aiConfig, defaultLogger);
-});
-
-// Register AI Engines and Router
-builder.Services.AddScoped<LegacyAiDslEngine>(sp => new LegacyAiDslEngine(
-    sp.GetRequiredService<IAiProvider>(),
-    sp.GetRequiredService<AiConfiguration>(),
-    sp.GetRequiredService<EngineService>(),
-    Log.ForContext<LegacyAiDslEngine>()));
-
-// PlanV1AiEngine - optionally with LLM provider if API key is available
-builder.Services.AddScoped<PlanV1AiEngine>(sp =>
+// Register AI Engine
+builder.Services.AddScoped<AiEngine>(sp =>
 {
     var apiKey = Environment.GetEnvironmentVariable("METRICS_OPENROUTER_API_KEY")
                  ?? Environment.GetEnvironmentVariable("OPENROUTER_API_KEY");
     
-    PlanV1LlmProvider? llmProvider = null;
+    AiLlmProvider? llmProvider = null;
     if (!string.IsNullOrEmpty(apiKey))
     {
-        llmProvider = new PlanV1LlmProvider(
+        llmProvider = new AiLlmProvider(
             sp.GetRequiredService<IHttpClientFactory>().CreateClient("AI"),
             sp.GetRequiredService<AiConfiguration>(),
-            sp.GetRequiredService<ILogger<PlanV1LlmProvider>>());
+            sp.GetRequiredService<ILogger<AiLlmProvider>>());
     }
     else
     {
-        Log.Warning("No API key configured for PlanV1 LLM - falling back to template-only mode");
+        Log.Warning("No API key configured for AI LLM - falling back to template-only mode");
     }
     
-    return new PlanV1AiEngine(
-        Log.ForContext<PlanV1AiEngine>(),
+    return new AiEngine(
+        Log.ForContext<AiEngine>(),
         sp.GetRequiredService<EngineService>(),
         llmProvider);
 });
-
-builder.Services.AddScoped<AiEngineRouter>(sp => new AiEngineRouter(
-    sp.GetRequiredService<LegacyAiDslEngine>(),
-    sp.GetRequiredService<PlanV1AiEngine>(),
-    sp.GetRequiredService<AiConfiguration>(),
-    Log.ForContext<AiEngineRouter>()));
 
 var app = builder.Build();
 
@@ -710,16 +663,50 @@ async Task<IResult> PreviewTransform(PreviewTransformRequestDto request, EngineS
         var inputJson = JsonSerializer.SerializeToElement(request.SampleInput);
         var outputSchemaJson = JsonSerializer.SerializeToElement(request.OutputSchema);
 
-        var result = engine.TransformValidateToCsv(inputJson, request.Dsl.Profile, request.Dsl.Text, outputSchemaJson);
+        // Only support IR (plan-based) execution
+        if (!string.Equals(request.Dsl.Profile, "ir", StringComparison.OrdinalIgnoreCase))
+        {
+            return Results.BadRequest(new PreviewTransformResponseDto(
+                false, 
+                new List<string> { $"UNSUPPORTED_PROFILE: Only 'ir' profile is supported, got '{request.Dsl.Profile}'" }));
+        }
 
-        var response = new PreviewTransformResponseDto(
-            result.IsValid,
-            result.Errors.ToList(),
-            result.OutputJson,
-            result.CsvPreview
-        );
+        try
+        {
+            // Deserialize plan and execute deterministically
+            var plan = JsonSerializer.Deserialize<Metrics.Api.AI.Engines.Ai.TransformPlan>(request.Dsl.Text, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
 
-        return Results.Ok(response);
+            if (plan == null)
+                throw new InvalidOperationException("PLAN_INVALID: Could not deserialize provided plan");
+
+            var exec = Metrics.Api.AI.Engines.Ai.PlanExecutor.Execute(plan, inputJson);
+            if (!exec.Success)
+            {
+                return Results.BadRequest(new PreviewTransformResponseDto(false, new List<string> { exec.Error ?? "Plan execution failed" }));
+            }
+
+            // Convert rows to JsonElement
+            var rowsJson = Metrics.Api.AI.Engines.Ai.ShapeNormalizer.ToJsonElement(exec.Rows!);
+
+            // Validate and generate CSV from rows using EngineService helper
+            var transformResult = engine.TransformValidateToCsvFromRows(rowsJson, outputSchemaJson);
+
+            var responsePlan = new PreviewTransformResponseDto(
+                transformResult.IsValid,
+                transformResult.Errors.ToList(),
+                transformResult.OutputJson,
+                transformResult.CsvPreview
+            );
+
+            return Results.Ok(responsePlan);
+        }
+        catch (Exception ex)
+        {
+            return Results.BadRequest(new PreviewTransformResponseDto(false, new List<string> { ex.Message }));
+        }
     }
     catch (Exception ex)
     {
@@ -729,7 +716,7 @@ async Task<IResult> PreviewTransform(PreviewTransformRequestDto request, EngineS
 
 async Task<IResult> GenerateDsl(
     DslGenerateRequest request,
-    AiEngineRouter engineRouter,
+    AiEngine aiEngine,
     HttpContext httpContext,
     ILogger<Program> logger)
 {
@@ -737,27 +724,12 @@ async Task<IResult> GenerateDsl(
     var correlationId = httpContext.Request.Headers["X-Correlation-Id"].FirstOrDefault()
         ?? Guid.NewGuid().ToString("N")[..12];
 
-    // Validate engine field if provided
-    if (!string.IsNullOrEmpty(request.Engine) && !EngineType.IsValid(request.Engine))
-    {
-        return Results.Json(new AiError
-        {
-            Code = "INVALID_ENGINE",
-            Message = $"Invalid engine value: '{request.Engine}'. Valid values are: legacy, plan_v1, auto",
-            CorrelationId = correlationId
-        }, statusCode: 400);
-    }
-
-    // Log engine selection
-    var resolvedEngine = engineRouter.GetResolvedEngineType(request);
     logger.LogInformation(
-        "AI DSL Generate: CorrelationId={CorrelationId}, RequestedEngine={RequestedEngine}, EngineSelected={EngineSelected}",
-        correlationId,
-        request.Engine ?? "(default)",
-        resolvedEngine);
+        "AI DSL Generate: CorrelationId={CorrelationId}",
+        correlationId);
 
-    // Route to appropriate engine and execute
-    var result = await engineRouter.RouteAndExecuteAsync(request, correlationId, httpContext.RequestAborted);
+    // Execute AI engine
+    var result = await aiEngine.GenerateAsync(request, correlationId, httpContext.RequestAborted);
 
     // Return appropriate response based on result
     if (result.Success)
@@ -953,4 +925,10 @@ static async Task<IResult> UpdateUserHandler(
         roles = user.Roles,
         updatedAt = user.UpdatedAtUtc
     });
+}
+
+// Make Program accessible to Integration.Tests
+namespace Metrics.Api
+{
+    public partial class Program { }
 }

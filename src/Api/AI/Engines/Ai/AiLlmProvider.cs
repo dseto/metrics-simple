@@ -4,17 +4,17 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 
-namespace Metrics.Api.AI.Engines.PlanV1;
+namespace Metrics.Api.AI.Engines.Ai;
 
 /// <summary>
-/// LLM provider for plan_v1 engine.
+/// LLM provider for AI engine.
 /// Generates TransformPlan JSON using structured outputs.
 /// </summary>
-public class PlanV1LlmProvider
+public class AiLlmProvider
 {
     private readonly HttpClient _httpClient;
     private readonly AiConfiguration _config;
-    private readonly ILogger<PlanV1LlmProvider> _logger;
+    private readonly ILogger<AiLlmProvider> _logger;
     private readonly string _apiKey;
     private readonly PlanSchemaValidator _schemaValidator;
 
@@ -74,10 +74,10 @@ public class PlanV1LlmProvider
         additionalProperties = false
     };
 
-    public PlanV1LlmProvider(
+    public AiLlmProvider(
         HttpClient httpClient,
         AiConfiguration config,
-        ILogger<PlanV1LlmProvider> logger)
+        ILogger<AiLlmProvider> logger)
     {
         _httpClient = httpClient;
         _config = config;
@@ -139,9 +139,9 @@ public class PlanV1LlmProvider
                 "PlanV1 LLM request: RequestId={RequestId}, Model={Model}, GoalLength={GoalLength}",
                 requestId, _config.Model, goalText.Length);
 
-            var systemPrompt = PlanV1SystemPrompt.Build(50); // Default max columns
+            var systemPrompt = AiSystemPrompt.Build(50); // Default max columns
             var sampleInputJson = JsonSerializer.Serialize(sampleInput, new JsonSerializerOptions { WriteIndented = true });
-            var userPrompt = PlanV1SystemPrompt.BuildUserPrompt(goalText, sampleInputJson, structureAnalysis, candidateRecordPaths);
+            var userPrompt = AiSystemPrompt.BuildUserPrompt(goalText, sampleInputJson, structureAnalysis, candidateRecordPaths);
 
             var chatRequest = BuildChatRequest(systemPrompt, userPrompt);
             var json = JsonSerializer.Serialize(chatRequest, JsonOptions);

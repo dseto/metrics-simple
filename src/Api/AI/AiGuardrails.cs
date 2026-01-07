@@ -48,7 +48,7 @@ public class AiGuardrails
         }
 
         // Validate dslProfile
-        var validProfiles = new[] { "jsonata", "jmespath" };
+        var validProfiles = new[] { "ir", "jmespath" };
         if (!validProfiles.Contains(request.DslProfile, StringComparer.OrdinalIgnoreCase))
         {
             errors.Add(new AiErrorDetail { Path = "dslProfile", Message = $"dslProfile must be one of: {string.Join(", ", validProfiles)}" });
@@ -92,7 +92,7 @@ public class AiGuardrails
                 errors.Add(new AiErrorDetail { Path = "dsl.text", Message = "dsl.text must not exceed 20000 characters" });
             }
 
-            var validProfiles = new[] { "jsonata", "jmespath", "custom" };
+            var validProfiles = new[] { "ir", "jmespath", "custom" };
             if (!validProfiles.Contains(result.Dsl.Profile, StringComparer.OrdinalIgnoreCase))
             {
                 errors.Add(new AiErrorDetail { Path = "dsl.profile", Message = $"dsl.profile must be one of: {string.Join(", ", validProfiles)}" });

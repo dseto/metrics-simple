@@ -18,7 +18,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\specs\backend\05-transformation\fixtures\*.json" Link="fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\specs\backend\05-transformation\fixtures\*.jsonata" Link="fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\specs\backend\05-transformation\fixtures\*.csv" Link="fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

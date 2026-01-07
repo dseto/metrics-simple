@@ -20,19 +20,19 @@ Transformar uma lista de vendas em um relatório agregado usando **Gemini 2.5 Fl
 1. Acesse: https://aistudio.google.com/app/apikeys
 2. Clique **"Create API Key"** (botão azul)
 3. Selecione seu projeto (ou deixe default)
-4. Copie a chave (ex: `AIzaSyCeHxPI2nOYZgQ9O2b5xsytN8OywVpQmBw`)
+4. Copie a chave (ex: `*`)
 
 #### 1.2 Configurar Variável de Ambiente
 
 **Windows PowerShell:**
 ```powershell
-$env:METRICS_GEMINI_API_KEY = "AIzaSyCeHxPI2nOYZgQ9O2b5xsytN8OywVpQmBw"
+$env:METRICS_GEMINI_API_KEY = "*"
 echo $env:METRICS_GEMINI_API_KEY  # Verificar
 ```
 
 **Linux/Mac Bash:**
 ```bash
-export METRICS_GEMINI_API_KEY="AIzaSyCeHxPI2nOYZgQ9O2b5xsytN8OywVpQmBw"
+export METRICS_GEMINI_API_KEY="*"
 echo $METRICS_GEMINI_API_KEY  # Verificar
 ```
 
@@ -98,21 +98,21 @@ curl -X POST http://localhost:5000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "username": "admin",
-    "password": "ChangeMe123!"
+    "password": "*"
   }'
 ```
 
 **Response:**
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token": "*",
   "expiresAt": "2026-01-07T00:00:00Z"
 }
 ```
 
 **Copiar o token:**
 ```bash
-$TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+$TOKEN = "*"
 ```
 
 ---
@@ -325,7 +325,7 @@ Request Time (curl) ────┐
 
 **1. Configurar API Key OpenRouter:**
 ```powershell
-$env:METRICS_OPENROUTER_API_KEY = "sua-openrouter-key"
+$env:METRICS_OPENROUTER_API_KEY = "*"
 ```
 
 **2. Atualizar appsettings.json:**

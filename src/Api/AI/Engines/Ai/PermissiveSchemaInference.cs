@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Metrics.Api.AI.Engines.PlanV1;
+namespace Metrics.Api.AI.Engines.Ai;
 
 /// <summary>
 /// Infers a permissive JSON schema from data rows.

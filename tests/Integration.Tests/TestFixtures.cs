@@ -18,15 +18,6 @@ public static class TestFixtures
     }
 
     /// <summary>
-    /// Reads the hosts-cpu-dsl.jsonata fixture file.
-    /// </summary>
-    public static string GetHostsCpuDsl()
-    {
-        var path = Path.Combine(AppContext.BaseDirectory, "fixtures", "hosts-cpu-dsl.jsonata");
-        return File.ReadAllText(path);
-    }
-
-    /// <summary>
     /// Reads the hosts-cpu-output.schema.json fixture file.
     /// </summary>
     public static string GetHostsCpuOutputSchemaJson()

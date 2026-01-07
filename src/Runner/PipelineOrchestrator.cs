@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Metrics.Engine;
 using Serilog;
+using Metrics.Api.AI.Engines.Ai;
 
 namespace Metrics.Runner;
 
@@ -360,14 +361,55 @@ public sealed class PipelineOrchestrator : IPipelineOrchestrator
             }
 
             // Step 4: Transform - Execute DSL transformation
-            Log.Information("Step 4: Transform - Executing DSL transformation");
+            Log.Information("Step 4: Transform - Executing transformation (profile: {Profile})", dslProfile);
             var outputSchema = JsonDocument.Parse(outputSchemaJson).RootElement;
-            var transformResult = _engine.TransformValidateToCsv(inputData, dslProfile, dslText, outputSchema);
+            
+            // Only support IR (plan-based) execution
+            if (!string.Equals(dslProfile, "ir", StringComparison.OrdinalIgnoreCase))
+            {
+                Log.Error("Unsupported DSL profile: {Profile}", dslProfile);
+                return new PipelineResult(50, $"Unsupported DSL profile '{dslProfile}'. Only 'ir' profile is supported."); // TRANSFORM_ERROR
+            }
+
+            // Deserialize and execute plan
+            TransformPlan? plan;
+            try
+            {
+                plan = JsonSerializer.Deserialize<TransformPlan>(dslText, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (plan == null)
+                {
+                    Log.Error("Plan deserialization failed: null result");
+                    return new PipelineResult(50, "Plan deserialization failed"); // TRANSFORM_ERROR
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Plan deserialization failed");
+                return new PipelineResult(50, $"Plan deserialization failed: {ex.Message}"); // TRANSFORM_ERROR
+            }
+
+            // Execute plan
+            var execResult = PlanExecutor.Execute(plan, inputData);
+            if (!execResult.Success)
+            {
+                Log.Error("Plan execution failed: {Error}", execResult.Error);
+                return new PipelineResult(50, $"Plan execution failed: {execResult.Error}"); // TRANSFORM_ERROR
+            }
+
+            // Normalize rows to JsonElement
+            var rowsJson = ShapeNormalizer.ToJsonElement(execResult.Rows!);
+
+            // Validate and generate CSV
+            var transformResult = _engine.TransformValidateToCsvFromRows(rowsJson, outputSchema);
 
             if (!transformResult.IsValid)
             {
-                Log.Error("Transform failed: {Errors}", string.Join(", ", transformResult.Errors));
-                return new PipelineResult(50, $"Transform failed: {string.Join(", ", transformResult.Errors)}"); // TRANSFORM_ERROR
+                Log.Error("Transform validation failed: {Errors}", string.Join(", ", transformResult.Errors));
+                return new PipelineResult(50, $"Transform validation failed: {string.Join(", ", transformResult.Errors)}"); // TRANSFORM_ERROR
             }
 
             // Step 5: ValidateOutputSchema

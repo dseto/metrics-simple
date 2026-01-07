@@ -13,14 +13,14 @@ curl -X POST http://localhost:8080/api/auth/token \
   -H "Content-Type: application/json" \
   -d '{
     "username": "admin",
-    "password": "ChangeMe123!"
+    "password": "*"
   }'
 ```
 
 **Resposta:**
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiI...",
+  "access_token": "*",
   "token_type": "Bearer",
   "expires_in": 3600
 }
@@ -28,10 +28,9 @@ curl -X POST http://localhost:8080/api/auth/token \
 
 Salve o `access_token` para usar nos próximos comandos:
 ```bash
-export ADMIN_TOKEN="seu_token_aqui"
+export ADMIN_TOKEN="*"
 ```
 
----
 
 ### 2. Criar Novo Usuário
 
@@ -43,7 +42,7 @@ curl -X POST http://localhost:8080/api/admin/auth/users \
   -H "Content-Type: application/json" \
   -d '{
     "username": "daniel",
-    "password": "SecurePass123!",
+    "password": "*",
     "displayName": "Daniel Silva",
     "email": "daniel@example.com",
     "roles": ["Metrics.Reader"]
@@ -51,11 +50,6 @@ curl -X POST http://localhost:8080/api/admin/auth/users \
 ```
 
 **Parâmetros:**
-- `username` (obrigatório): username único para login
-- `password` (obrigatório): mínimo 8 caracteres
-- `displayName` (opcional): nome para exibição
-- `email` (opcional): email do usuário
-- `roles` (opcional): ["Metrics.Reader"] por padrão. Pode ser ["Metrics.Admin"] ou ["Metrics.Admin", "Metrics.Reader"]
 
 **Resposta (201 Created):**
 ```json
@@ -70,7 +64,6 @@ curl -X POST http://localhost:8080/api/admin/auth/users \
 }
 ```
 
----
 
 ### 3. Usuário Faz Login
 
@@ -81,11 +74,10 @@ curl -X POST http://localhost:8080/api/auth/token \
   -H "Content-Type: application/json" \
   -d '{
     "username": "daniel",
-    "password": "SecurePass123!"
+    "password": "*"
   }'
 ```
 
----
 
 ### 4. Admin Altera Senha do Usuário
 
@@ -96,7 +88,7 @@ curl -X PUT http://localhost:8080/api/admin/auth/users/f47ac10b58cc4372a5670e4a9
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "newPassword": "NewPassword456!"
+    "newPassword": "*"
   }'
 ```
 
@@ -107,7 +99,6 @@ curl -X PUT http://localhost:8080/api/admin/auth/users/f47ac10b58cc4372a5670e4a9
 }
 ```
 
----
 
 ### 5. Admin Atualiza Roles e Perfil
 
@@ -138,7 +129,6 @@ curl -X PUT http://localhost:8080/api/admin/auth/users/f47ac10b58cc4372a5670e4a9
 }
 ```
 
----
 
 ### 6. Admin Obtém Detalhes do Usuário
 
@@ -163,7 +153,6 @@ curl -X GET http://localhost:8080/api/admin/auth/users/f47ac10b58cc4372a5670e4a9
 }
 ```
 
----
 
 ## Exemplo com PowerShell
 
@@ -172,7 +161,7 @@ curl -X GET http://localhost:8080/api/admin/auth/users/f47ac10b58cc4372a5670e4a9
 $token = (Invoke-WebRequest -Uri http://localhost:8080/api/auth/token `
   -Method POST `
   -Headers @{"Content-Type"="application/json"} `
-  -Body '{"username":"admin","password":"ChangeMe123!"}' `
+  -Body '{"username":"admin","password":"*"}' `
   -UseBasicParsing).Content | ConvertFrom-Json | Select-Object -ExpandProperty access_token
 
 # 2. Create user
@@ -184,7 +173,7 @@ $user = (Invoke-WebRequest -Uri http://localhost:8080/api/admin/auth/users `
   } `
   -Body @{
     username = "joao"
-    password = "JoaoPass2024!"
+    password = "*"
     displayName = "João Santos"
     email = "joao@company.com"
     roles = @("Metrics.Reader")
@@ -206,7 +195,6 @@ $updated = (Invoke-WebRequest -Uri "http://localhost:8080/api/admin/auth/users/$
 Write-Host "User roles updated to: $($updated.roles -join ', ')"
 ```
 
----
 
 ## Erros Comuns
 
@@ -218,22 +206,15 @@ Write-Host "User roles updated to: $($updated.roles -join ', ')"
 | 409 Conflict | Username já existe | Use username diferente |
 | 404 Not Found | Usuário não existe | Verifique o ID do usuário |
 
----
 
 ## Dados Armazenados
 
 Todos os usuários são persistidos em SQLite em:
-- **Arquivo:** `/app/config/config.db`
-- **Tabelas:** 
   - `auth_users` - Dados do usuário
   - `auth_user_roles` - Roles do usuário
 
 **Segurança:**
-- Senhas hasheadas com BCrypt (WorkFactor=12)
-- Nunca retornadas em respostas de API
-- Cada operação auditada com correlationId
 
----
 
 ## Próximos Passos
 

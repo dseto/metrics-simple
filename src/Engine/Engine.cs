@@ -4,77 +4,45 @@ namespace Metrics.Engine;
 
 public sealed record TransformResult(bool IsValid, JsonElement? OutputJson, IReadOnlyList<string> Errors, string? CsvPreview);
 
-public interface IDslTransformer
-{
-    JsonElement Transform(JsonElement input, string dslProfile, string dslText);
-}
-
 public sealed class EngineService
 {
-    private readonly IDslTransformer _transformer;
     private readonly ISchemaValidator _schemaValidator;
     private readonly ICsvGenerator _csvGenerator;
 
-    public EngineService(IDslTransformer transformer, ISchemaValidator schemaValidator, ICsvGenerator csvGenerator)
+    public EngineService(ISchemaValidator schemaValidator, ICsvGenerator csvGenerator)
     {
-        _transformer = transformer;
         _schemaValidator = schemaValidator;
         _csvGenerator = csvGenerator;
     }
 
-    public TransformResult TransformValidateToCsv(JsonElement input, string dslProfile, string dslText, JsonElement outputSchema)
+    public TransformResult TransformValidateToCsvFromRows(JsonElement rowsArray, JsonElement outputSchema)
     {
         try
         {
-            // Step 1: Execute DSL transformation
-            var output = _transformer.Transform(input, dslProfile, dslText);
+            // rowsArray is expected to be a normalized array of objects
 
-            // Step 2: Normalize output to rows array (per dsl-engine.md)
-            var rows = NormalizeRowsToArray(output);
-
-            // Step 3: Validate normalized output against schema (skip if schema is empty {})
+            // Step 1: Validate normalized output against schema (skip if schema is empty {})
             if (outputSchema.GetRawText() != "{}")
             {
-                var (isValid, errors) = _schemaValidator.ValidateAgainstSchema(rows, outputSchema);
+                var (isValid, errors) = _schemaValidator.ValidateAgainstSchema(rowsArray, outputSchema);
                 if (!isValid)
                 {
                     return new TransformResult(false, null, errors, null);
                 }
             }
 
-            // Step 4: Resolve column order from outputSchema (per csv-format.md)
-            var columns = ResolveColumns(rows, outputSchema);
+            // Step 2: Resolve column order from outputSchema (per csv-format.md)
+            var columns = ResolveColumns(rowsArray, outputSchema);
 
-            // Step 5: Generate deterministic CSV with proper columns
-            var csvPreview = _csvGenerator.GenerateCsv(rows, columns);
+            // Step 3: Generate deterministic CSV with proper columns
+            var csvPreview = _csvGenerator.GenerateCsv(rowsArray, columns);
 
-            return new TransformResult(true, rows, Array.Empty<string>(), csvPreview);
+            return new TransformResult(true, rowsArray, Array.Empty<string>(), csvPreview);
         }
         catch (Exception ex)
         {
             return new TransformResult(false, null, new[] { ex.Message }, null);
         }
-    }
-
-    /// <summary>
-    /// Normalizes output to an array of objects (rows).
-    /// - array => return as is
-    /// - object => wrap in [object]
-    /// - null => []
-    /// - others => throw TRANSFORM_FAILED
-    /// </summary>
-    private static JsonElement NormalizeRowsToArray(JsonElement output)
-    {
-        return output.ValueKind switch
-        {
-            JsonValueKind.Array => output,
-            JsonValueKind.Object => 
-                JsonDocument.Parse($"[{output.GetRawText()}]").RootElement.Clone(),
-            JsonValueKind.Null => 
-                JsonDocument.Parse("[]").RootElement.Clone(),
-            _ => throw new InvalidOperationException(
-                $"TRANSFORM_FAILED: Jsonata output must be array/object/null, got {output.ValueKind}")
-        };
     }
 
     /// <summary>

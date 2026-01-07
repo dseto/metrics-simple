@@ -127,7 +127,7 @@ public class IT04_AiDslGenerateTests : IClassFixture<AiTestFixture>, IDisposable
                 ForbidNetworkCalls = true,
                 ForbidCodeExecution = true
             },
-            Engine = "plan_v1"  // Request plan_v1 engine
+
         };
 
         // Act
@@ -138,7 +138,7 @@ public class IT04_AiDslGenerateTests : IClassFixture<AiTestFixture>, IDisposable
 
         var result = await response.Content.ReadFromJsonAsync<DslGenerateResult>();
         result.Should().NotBeNull();
-        result!.EngineUsed.Should().Be("plan_v1");
+
         result!.Dsl.Profile.Should().Be("plan_v1");
         result!.ExampleRows.Should().NotBeNull();
         result!.OutputSchema.ValueKind.Should().Be(JsonValueKind.Object);
@@ -160,7 +160,7 @@ public class IT04_AiDslGenerateTests : IClassFixture<AiTestFixture>, IDisposable
                 ForbidNetworkCalls = true,
                 ForbidCodeExecution = true
             },
-            Engine = "invalid_engine"  // Invalid engine value
+
         };
 
         // Act
@@ -190,7 +190,7 @@ public class IT04_AiDslGenerateTests : IClassFixture<AiTestFixture>, IDisposable
                 ForbidNetworkCalls = true,
                 ForbidCodeExecution = true
             },
-            Engine = "legacy"  // Explicitly request legacy engine
+
         };
 
         // Act
@@ -202,7 +202,7 @@ public class IT04_AiDslGenerateTests : IClassFixture<AiTestFixture>, IDisposable
         var result = await response.Content.ReadFromJsonAsync<DslGenerateResult>();
         result.Should().NotBeNull();
         result!.Dsl.Should().NotBeNull();
-        result!.EngineUsed.Should().Be("legacy");
+
     }
 
     [Fact]
@@ -221,7 +221,7 @@ public class IT04_AiDslGenerateTests : IClassFixture<AiTestFixture>, IDisposable
                 ForbidNetworkCalls = true,
                 ForbidCodeExecution = true
             },
-            Engine = "auto"  // Auto should fall back to legacy
+
         };
 
         // Act
@@ -232,7 +232,7 @@ public class IT04_AiDslGenerateTests : IClassFixture<AiTestFixture>, IDisposable
 
         var result = await response.Content.ReadFromJsonAsync<DslGenerateResult>();
         result.Should().NotBeNull();
-        result!.EngineUsed.Should().Be("legacy");
+
     }
 
     [Fact]
@@ -258,7 +258,6 @@ public class IT04_AiDslGenerateTests : IClassFixture<AiTestFixture>, IDisposable
                 ForbidNetworkCalls = true,
                 ForbidCodeExecution = true
             },
-            Engine = "plan_v1",
             IncludePlan = true  // Request plan in response
         };
 
@@ -270,7 +269,7 @@ public class IT04_AiDslGenerateTests : IClassFixture<AiTestFixture>, IDisposable
 
         var result = await response.Content.ReadFromJsonAsync<DslGenerateResult>();
         result.Should().NotBeNull();
-        result!.EngineUsed.Should().Be("plan_v1");
+
         result!.Plan.Should().NotBeNull();
         result!.Plan!.Value.TryGetProperty("planVersion", out var version).Should().BeTrue();
         version.GetString().Should().Be("1.0");
@@ -319,7 +318,6 @@ public class IT04_AiDslGenerateTests : IClassFixture<AiTestFixture>, IDisposable
                 ForbidNetworkCalls = true,
                 ForbidCodeExecution = true
             },
-            Engine = "plan_v1",
             IncludePlan = true,
             Hints = new Dictionary<string, string> { ["plan"] = plan }
         };
@@ -332,7 +330,7 @@ public class IT04_AiDslGenerateTests : IClassFixture<AiTestFixture>, IDisposable
 
         var result = await response.Content.ReadFromJsonAsync<DslGenerateResult>();
         result.Should().NotBeNull();
-        result!.EngineUsed.Should().Be("plan_v1");
+
         result!.ExampleRows.Should().NotBeNull();
 
         // Verify rows are sorted by price descending
@@ -716,7 +714,7 @@ public class AiTestFixture
 /// <summary>
 /// Custom WebApplicationFactory that allows injecting AI configuration and provider
 /// </summary>
-public class AiTestWebApplicationFactory : WebApplicationFactory<Program>
+public class AiTestWebApplicationFactory : WebApplicationFactory<Metrics.Api.Program>
 {
     private readonly string _dbPath;
     private readonly AiConfiguration _aiConfig;

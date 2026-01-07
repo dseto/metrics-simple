@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Metrics.Api.AI.Engines.PlanV1;
+using Metrics.Api.AI.Engines.Ai;
 using Metrics.Engine;
 using Serilog;
 using Microsoft.Extensions.Logging;
@@ -7,34 +7,34 @@ using Microsoft.Extensions.Logging;
 namespace Metrics.Api.AI.Engines;
 
 /// <summary>
-/// Plan V1 engine using LLM to generate IR (Intermediate Representation) plans
+/// AI engine using LLM to generate IR (Intermediate Representation) plans
 /// with deterministic fallback to templates when LLM fails.
 /// 
 /// Pipeline:
 /// 1. Discover recordPath candidates
 /// 2. Try LLM to generate plan (if available)
-/// 3. If LLM fails: fallback to template matching (T1/T2/T5)
+/// 3. If LLM fails: fallback to template matching
 /// 4. Validate and execute plan
 /// 5. Return preview + inferred schema
 /// 
 /// Never returns 502 - always fallback to template or 400 with clear message.
 /// </summary>
-public class PlanV1AiEngine : IAiTransformationEngine
+public class AiEngine
 {
     private readonly Serilog.ILogger _logger;
     private readonly EngineService _engine;
     private readonly PlanSchemaValidator _planValidator;
-    private readonly PlanV1LlmProvider? _llmProvider;
+    private readonly AiLlmProvider? _llmProvider;
 
-    public string EngineType => AI.EngineType.PlanV1;
+    public string EngineType => "ir";
 
     /// <summary>
     /// Creates engine with optional LLM support
     /// </summary>
-    public PlanV1AiEngine(
+    public AiEngine(
         Serilog.ILogger logger,
         EngineService engine,
-        PlanV1LlmProvider? llmProvider = null)
+        AiLlmProvider? llmProvider = null)
     {
         _logger = logger;
         _engine = engine;
@@ -49,7 +49,7 @@ public class PlanV1AiEngine : IAiTransformationEngine
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         var planSource = "unknown"; // Track origin: "llm", "template", "explicit"
-        PlanV1LlmProvider.PlanErrorCategory? llmErrorCategory = null;
+        AiLlmProvider.PlanErrorCategory? llmErrorCategory = null;
         long llmLatencyMs = 0;
 
         try
@@ -124,7 +124,7 @@ public class PlanV1AiEngine : IAiTransformationEngine
                             if (pathCheck == null || pathCheck.Value.ValueKind != JsonValueKind.Array)
                             {
                                 _logger.Warning("LLM plan has invalid recordPath: {Path}, falling back", llmRecordPath);
-                                llmErrorCategory = PlanV1LlmProvider.PlanErrorCategory.RecordPathNotFound;
+                                llmErrorCategory = AiLlmProvider.PlanErrorCategory.RecordPathNotFound;
                             }
                             else
                             {
@@ -252,10 +252,8 @@ public class PlanV1AiEngine : IAiTransformationEngine
             string? csvPreview = null;
             try
             {
-                var transformResult = _engine.TransformValidateToCsv(
+                var transformResult = _engine.TransformValidateToCsvFromRows(
                     outputArray,
-                    "jsonata",
-                    "$",
                     outputSchema);
 
                 if (transformResult.IsValid)
@@ -272,40 +270,40 @@ public class PlanV1AiEngine : IAiTransformationEngine
             stopwatch.Stop();
 
             // 8. Build response with observability data
+            var planText = JsonSerializer.Serialize(plan, new JsonSerializerOptions { WriteIndented = false });
             var result = new DslGenerateResult
             {
                 Dsl = new DslOutput
                 {
-                    Profile = "plan_v1",
-                    Text = $"<plan_v1:{planSource}>"
+                    Profile = "ir",
+                    Text = planText
                 },
+                Plan = JsonSerializer.SerializeToElement(plan),
                 OutputSchema = outputSchema,
                 ExampleRows = outputArray,
                 Rationale = BuildRationale(planSource, recordPath, rows.Count, llmLatencyMs, llmErrorCategory),
                 Warnings = execResult.Warnings,
-                EngineUsed = AI.EngineType.PlanV1,
-                Plan = request.IncludePlan ? JsonSerializer.SerializeToElement(plan) : null,
                 ModelInfo = new ModelInfo
                 {
                     Provider = planSource.StartsWith("llm") ? "llm" : "deterministic",
-                    Model = planSource.StartsWith("llm") ? "plan_v1_llm" : "plan_v1_template",
+                    Model = planSource.StartsWith("llm") ? "ir_llm" : "ir_template",
                     PromptVersion = "1.0"
                 }
             };
 
             _logger.Information(
-                "PlanV1 engine success: CorrelationId={CorrelationId}, PlanSource={PlanSource}, Rows={RowCount}, TotalLatency={Latency}ms, LlmLatency={LlmLatency}ms",
+                "AI engine success: CorrelationId={CorrelationId}, PlanSource={PlanSource}, Rows={RowCount}, TotalLatency={Latency}ms, LlmLatency={LlmLatency}ms",
                 correlationId, planSource, rows.Count, stopwatch.ElapsedMilliseconds, llmLatencyMs);
 
-            return AiEngineResult.Ok(result, AI.EngineType.PlanV1);
+            return AiEngineResult.Ok(result, "ir");
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.Error(ex, "PlanV1 engine unexpected error: CorrelationId={CorrelationId}", correlationId);
+            _logger.Error(ex, "AI engine unexpected error: CorrelationId={CorrelationId}", correlationId);
             
             // Never return 502 - return 400 with clear message
-            return CreateError(correlationId, "PLAN_V1_ERROR", 
+            return CreateError(correlationId, "AI_ERROR", 
                 $"Transformation failed. Please simplify your goal or provide more specific instructions. Details: {ex.Message}");
         }
     }
@@ -406,7 +404,7 @@ public class PlanV1AiEngine : IAiTransformationEngine
         string recordPath,
         int rowCount,
         long llmLatencyMs,
-        PlanV1LlmProvider.PlanErrorCategory? llmErrorCategory)
+        AiLlmProvider.PlanErrorCategory? llmErrorCategory)
     {
         var parts = new List<string>
         {
@@ -420,7 +418,7 @@ public class PlanV1AiEngine : IAiTransformationEngine
             parts.Add($"LLM latency: {llmLatencyMs}ms");
         }
 
-        if (llmErrorCategory.HasValue && llmErrorCategory != PlanV1LlmProvider.PlanErrorCategory.None)
+        if (llmErrorCategory.HasValue && llmErrorCategory != AiLlmProvider.PlanErrorCategory.None)
         {
             parts.Add($"LLM fallback reason: {llmErrorCategory}");
         }

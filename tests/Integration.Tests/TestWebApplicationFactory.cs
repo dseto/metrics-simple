@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using System.Text.Json;
+using Metrics.Api;
 
 namespace Integration.Tests;
 
@@ -10,7 +11,7 @@ namespace Integration.Tests;
 /// Configures API to use a specific SQLite database via METRICS_SQLITE_PATH env var.
 /// By default, disables auth for easier testing. Use WithAuth() to enable auth testing.
 /// </summary>
-public class TestWebApplicationFactory : WebApplicationFactory<Program>
+public class TestWebApplicationFactory : WebApplicationFactory<Metrics.Api.Program>
 {
     private readonly string _dbPath;
     private readonly bool _disableAuth;

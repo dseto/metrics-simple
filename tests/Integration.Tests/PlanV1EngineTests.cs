@@ -1,12 +1,12 @@
 using System.Text.Json;
 using FluentAssertions;
-using Metrics.Api.AI.Engines.PlanV1;
+using Metrics.Api.AI.Engines.Ai;
 using Xunit;
 
 namespace Integration.Tests;
 
 /// <summary>
-/// Unit tests for PlanV1 engine components.
+/// Unit tests for AI engine components (formerly PlanV1).
 /// </summary>
 public class PlanV1EngineTests
 {

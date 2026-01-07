@@ -17,7 +17,7 @@
 
 Set in your PowerShell terminal:
 ```powershell
-$env:METRICS_OPENROUTER_API_KEY = "*********-YOUR_ACTUAL_KEY_HERE"
+$env:METRICS_OPENROUTER_API_KEY = "*"
 ```
 
 Then run tests:
@@ -33,7 +33,7 @@ Edit `.runsettings`:
 <RunSettings>
   <RunConfiguration>
     <EnvironmentVariables>
-      <METRICS_OPENROUTER_API_KEY>*********-YOUR_ACTUAL_KEY_HERE</METRICS_OPENROUTER_API_KEY>
+      <METRICS_OPENROUTER_API_KEY>*</METRICS_OPENROUTER_API_KEY>
       <ASPNETCORE_ENVIRONMENT>Development</ASPNETCORE_ENVIRONMENT>
       <DOTNET_ENVIRONMENT>Development</DOTNET_ENVIRONMENT>
     </EnvironmentVariables>
@@ -47,7 +47,7 @@ Edit `.runsettings`:
 
 Edit `.env` (already in .gitignore):
 ```bash
-METRICS_OPENROUTER_API_KEY=*********-YOUR_ACTUAL_KEY_HERE
+METRICS_OPENROUTER_API_KEY=*
 ```
 
 ## Step 3: Verify Configuration

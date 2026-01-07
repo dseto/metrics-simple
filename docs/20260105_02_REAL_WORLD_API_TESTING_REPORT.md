@@ -26,7 +26,7 @@ The LLM-based DSL generation has a transient issue with the OpenRouter API (401 
 ### Test Environment
 - **API**: http://localhost:5000
 - **Sample Data**: HGBrasil Weather API response (real-world structure)
-- **Auth**: LocalJwt with bootstrap admin (admin/ChangeMe123!)
+- **Auth**: LocalJwt with bootstrap admin (admin/*)
 - **Endpoints Tested**:
   - POST `/api/auth/token` ✓ Working
   - POST `/api/v1/ai/dsl/generate` ⚠️ External API issue  
