@@ -226,7 +226,7 @@ public class IT13_LLMAssistedDslFlowTests : IAsyncLifetime
 
         
 
-        _output.WriteLine($"   DSL: {dslResult.Dsl.Text[..Math.Min(200, dslResult.Dsl.Text.Length)]}...\n");
+        _output.WriteLine($"   DSL: {dslResult!.Dsl.Text[..Math.Min(200, dslResult!.Dsl.Text.Length)]}...\n");
 
         // Validate we have preview rows with expected columns
         dslResult.ExampleRows.Should().NotBeNull();
@@ -234,7 +234,7 @@ public class IT13_LLMAssistedDslFlowTests : IAsyncLifetime
         dslResult.ExampleRows.Value.GetArrayLength().Should().BeGreaterThan(0, "Should have preview rows");
         
         // Check that preview contains id, nome, cidade (or equivalent)
-        var previewJson = JsonSerializer.Serialize(dslResult.ExampleRows);
+        var previewJson = JsonSerializer.Serialize(dslResult!.ExampleRows);
         _output.WriteLine($"   Preview: {previewJson[..Math.Min(300, previewJson.Length)]}...");
         
         // Less fragile assertion: check preview has some data and expected field count
@@ -268,9 +268,9 @@ public class IT13_LLMAssistedDslFlowTests : IAsyncLifetime
         
 
         
-        dslResult.ExampleRows.Should().NotBeNull();
-        dslResult.ExampleRows!.Value.ValueKind.Should().Be(JsonValueKind.Array);
-        dslResult.ExampleRows.Value.GetArrayLength().Should().BeGreaterThan(0);
+        dslResult!.ExampleRows.Should().NotBeNull();
+        dslResult!.ExampleRows!.Value.ValueKind.Should().Be(JsonValueKind.Array);
+        dslResult!.ExampleRows!.Value.GetArrayLength().Should().BeGreaterThan(0);
         
         _output.WriteLine("✅ PlanV1 SimpleExtraction (Items Wrapper) PASSED!");
     }
@@ -300,9 +300,9 @@ public class IT13_LLMAssistedDslFlowTests : IAsyncLifetime
         
 
         
-        dslResult.ExampleRows.Should().NotBeNull();
-        dslResult.ExampleRows!.Value.ValueKind.Should().Be(JsonValueKind.Array);
-        dslResult.ExampleRows.Value.GetArrayLength().Should().BeGreaterThan(0);
+        dslResult!.ExampleRows.Should().NotBeNull();
+        dslResult!.ExampleRows!.Value.ValueKind.Should().Be(JsonValueKind.Array);
+        dslResult!.ExampleRows!.Value.GetArrayLength().Should().BeGreaterThan(0);
         
         _output.WriteLine("✅ PlanV1 SimpleExtraction (Results Wrapper) PASSED!");
     }
@@ -332,12 +332,12 @@ public class IT13_LLMAssistedDslFlowTests : IAsyncLifetime
 
         
 
-        _output.WriteLine($"   DSL: {dslResult.Dsl.Text[..Math.Min(300, dslResult.Dsl.Text.Length)]}...\n");
+        _output.WriteLine($"   DSL: {dslResult!.Dsl.Text[..Math.Min(300, dslResult!.Dsl.Text.Length)]}...\n");
 
         dslResult.ExampleRows.Should().NotBeNull();
         
         // Should have 2 categories: Electronics and Furniture
-        var previewJson = JsonSerializer.Serialize(dslResult.ExampleRows);
+        var previewJson = JsonSerializer.Serialize(dslResult!.ExampleRows);
         _output.WriteLine($"   Preview: {previewJson}");
         
         // Less fragile: just check we got aggregated results
@@ -372,13 +372,13 @@ public class IT13_LLMAssistedDslFlowTests : IAsyncLifetime
 
         
 
-        _output.WriteLine($"   DSL: {dslResult.Dsl.Text[..Math.Min(300, dslResult.Dsl.Text.Length)]}...\n");
+        _output.WriteLine($"   DSL: {dslResult!.Dsl.Text[..Math.Min(300, dslResult!.Dsl.Text.Length)]}...\n");
 
         dslResult.ExampleRows.Should().NotBeNull();
         dslResult.ExampleRows!.Value.ValueKind.Should().Be(JsonValueKind.Array);
         dslResult.ExampleRows.Value.GetArrayLength().Should().Be(5, "Should have 5 forecast days");
         
-        var previewJson = JsonSerializer.Serialize(dslResult.ExampleRows);
+        var previewJson = JsonSerializer.Serialize(dslResult!.ExampleRows);
         _output.WriteLine($"   Preview: {previewJson[..Math.Min(400, previewJson.Length)]}...");
         
         // Less fragile: verify some weather data is present (max/min or date)
@@ -404,7 +404,7 @@ public class IT13_LLMAssistedDslFlowTests : IAsyncLifetime
         dslResult.Should().NotBeNull();
 
 
-        var transform = await ExecuteTransformAsync(sampleInput, dslResult);
+        var transform = await ExecuteTransformAsync(sampleInput, dslResult!);
         transform.Should().NotBeNull();
         transform!.IsValid.Should().BeTrue();
     }
