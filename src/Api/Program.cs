@@ -128,6 +128,9 @@ if (!string.IsNullOrEmpty(apiKeyFromEnv))
 
 builder.Services.AddSingleton(aiConfig);
 
+// Register HTTP Client Factory for AI LLM provider
+builder.Services.AddHttpClient("AI");
+
 // Register AI Engine
 builder.Services.AddScoped<AiEngine>(sp =>
 {
