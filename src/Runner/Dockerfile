@@ -10,14 +10,22 @@ WORKDIR /src
 COPY Directory.Build.props .
 COPY global.json .
 
+# Copy templates directory (required by Api.csproj for NJsonSchema validation)
+COPY templates ./templates/
+
 # Copy csproj and restore as distinct layers for better caching
+COPY src/Api/Api.csproj ./Api/
 COPY src/Runner/Runner.csproj ./Runner/
 COPY src/Engine/Engine.csproj ./Engine/
+
+# Create symlink or copy plan-schema-v1.json to expected location
+RUN ln -sf /src/templates/plan-schema-v1.json /templates/plan-schema-v1.json || true
 
 # Restore dependencies
 RUN dotnet restore "Runner/Runner.csproj"
 
 # Copy the rest of the source code
+COPY src/Api ./Api/
 COPY src/Runner ./Runner/
 COPY src/Engine ./Engine/
 

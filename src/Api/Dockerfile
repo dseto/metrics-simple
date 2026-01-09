@@ -11,6 +11,9 @@ WORKDIR /src
 COPY Directory.Build.props .
 COPY global.json .
 
+# Copy templates directory (required by Api.csproj for NJsonSchema validation)
+COPY templates ./templates/
+
 # Copy csproj files and restore as distinct layers for better caching
 COPY src/Api/Api.csproj ./Api/
 COPY src/Engine/Engine.csproj ./Engine/
@@ -23,6 +26,8 @@ COPY src/Api ./Api/
 COPY src/Engine ./Engine/
 
 # Publish the application (self-contained, trimmed, ready for runtime)
+# Set env var to help MSBuild find the template file
+ENV DOTNET_HOST_PATH=/src
 RUN dotnet publish Api/Api.csproj -c Release -o /app/publish
 
 # --- Runtime Stage ---

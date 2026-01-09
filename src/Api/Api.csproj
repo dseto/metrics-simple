@@ -19,7 +19,11 @@
     <ProjectReference Include="..\Engine\Engine.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\templates\plan-schema-v1.json" Link="templates\plan-schema-v1.json">
+    <None Include="..\..\templates\plan-schema-v1.json" Link="templates\plan-schema-v1.json" Condition="Exists('..\..\templates\plan-schema-v1.json')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- Fallback: if templates directory is in publish output, link to it -->
+    <None Include="templates\plan-schema-v1.json" Condition="Exists('templates\plan-schema-v1.json') AND !Exists('..\..\templates\plan-schema-v1.json')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
